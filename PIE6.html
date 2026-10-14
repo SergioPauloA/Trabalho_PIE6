@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuperValidade - Gestão de Perdas e Validades</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@0.383.0"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f5fa',
+              100: '#e1ecf5',
+              200: '#c3daeb',
+              500: '#1b4d7e',
+              800: '#0f2942',
+              900: '#0a1d30',
+              950: '#061320'
+            },
+            forest: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}} :focus-visible{outline:2px solid #1b4d7e;outline-offset:2px}
+</style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- SIDEBAR NAVEGAÇÃO -->
+  <aside class="w-64 bg-brand-900 text-slate-200 flex flex-col shrink-0 shadow-xl border-r border-brand-800 z-20">
+    <!-- Brand / Logo -->
+    <div class="h-20 flex items-center px-6 gap-3 border-b border-brand-800/80 bg-brand-950/60">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-forest-700 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-forest-900/40">
+        <i data-lucide="shield-check" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+          SuperValidade
+        </h1>
+        <p class="text-xs text-brand-200 font-medium">Controle de Estoque & Perdas</p>
+      </div>
+    </div>
+
+    <!-- Indicador de Loja / Unidade -->
+    <div class="px-6 py-4 border-b border-brand-800/50 bg-brand-900/50">
+      <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+        <span>UNIDADE ATIVA</span>
+        <span class="inline-flex items-center gap-1 text-emerald-400 font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Dados até 13/06
+        </span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-white">Hipermercado Central - Loja 04</span>
+        <button class="text-slate-400 hover:text-white transition-colors" title="Trocar loja">
+          <i data-lucide="chevrons-up-down" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navegação em Abas (Tabs) -->
+    <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+      <div class="px-2 pb-2 text-xs font-bold text-slate-400 tracking-wider uppercase">Módulos do Sistema</div>
+
+      <button id="tab-btn-dash" onclick="switchTab('tab-dash')"
+        class="w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-white bg-brand-800 shadow-sm border border-brand-700/50">
+        <i data-lucide="layout-dashboard" class="w-5 h-5 text-emerald-400"></i>
+        <span>Dashboard Indicadores</span>
+      </button>
+
+      <button id="tab-btn-validades" onclick="switchTab('tab-validades')"
+        class="w-full flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-slate-300 hover:bg-brand-800/60 hover:text-white border border-transparent">
+        <div class="flex items-center gap-3">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+          <span>Gestão & Validades</span>
+        </div>
+        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-600 text-white" id="sb-crit" title="Críticos">6 crít.</span><span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-500 text-slate-900" id="sb-att" title="Atenção">8 aten.</span>
+      </button>
+
+      <button id="tab-btn-config" onclick="switchTab('tab-config')"
+        class="w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-slate-300 hover:bg-brand-800/60 hover:text-white border border-transparent">
+        <i data-lucide="sliders" class="w-5 h-5 text-blue-300"></i>
+        <span>Configurações Alerta</span>
+      </button>
+
+      <div class="pt-6 px-2 pb-2 text-xs font-bold text-slate-400 tracking-wider uppercase">Relatórios Rápidos</div>
+      <a href="javascript:void(0)" onclick="showToast('Relatório','Exportação será ligada ao backend. Aqui: dados de demonstração.','file-spreadsheet','forest')" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-brand-800/40 hover:text-white transition-colors">
+        <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+        <span>Balancete de Quebras</span>
+      </a>
+      <a href="javascript:void(0)" onclick="abrirAuditoria()" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-brand-800/40 hover:text-white transition-colors">
+        <i data-lucide="history" class="w-4 h-4 text-slate-400"></i>
+        <span>Auditoria de Descartes</span>
+      </a>
+    </nav>
+
+    <!-- Usuário Rodapé -->
+    <div class="p-4 border-t border-brand-800/80 bg-brand-950/40 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-brand-700 border-2 border-forest-600 flex items-center justify-center font-bold text-white text-xs">
+        RC
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-white truncate">Rodrigo Cardozo</p>
+        <p class="text-xs text-slate-400 truncate">Gerente de Prevenção</p>
+      </div>
+      <button onclick="showToast('Sessão','Logout é simulado neste protótipo.','log-out','forest')" class="text-slate-400 hover:text-rose-400 transition-colors p-1" title="Encerrar Sessão">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+    <!-- Topbar Header -->
+    <header class="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 z-10 shadow-sm">
+      <div class="flex items-center gap-4">
+        <div>
+          <h2 id="page-title" class="text-xl font-bold text-brand-900">Dashboard de Indicadores de Perdas</h2>
+          <p id="page-subtitle" class="text-xs text-slate-500 font-medium">Panorama analítico e monitoramento financeiro de quebras de estoque</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Quick search -->
+        <div class="relative w-64 hidden md:block">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"></i>
+          <input type="search" id="busca" aria-label="Buscar lote, EAN ou produto" oninput="buscar(this.value)" placeholder="Buscar lote, EAN ou produto..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white text-slate-700 transition">
+        </div>
+
+        <!-- Period selector -->
+        <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1 text-xs">
+          <span class="px-2 text-slate-500 font-medium">Período:</span>
+          <select aria-label="Período" onchange="showToast('Período','Protótipo com dados de demonstração de junho/2024.','calendar','forest')" class="bg-transparent font-semibold text-brand-900 border-none focus:outline-none text-xs cursor-pointer">
+            <option>Mês Atual (Junho/2024)</option>
+            <option>Últimos 30 dias</option>
+            <option>Último Trimestre</option>
+            <option>Ano Vigente (2024)</option>
+          </select>
+        </div>
+
+        <!-- Notificações -->
+        <button aria-label="Notificações: itens em risco" onclick="switchTab('tab-validades')" class="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-brand-900 transition">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+        </button>
+
+        <!-- CTA Rápido -->
+        <button onclick="switchTab('tab-validades')" class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-900 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i>
+          <span id="cta-risk">14 Itens em Risco</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT TABS CONTAINER -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+      
+      <!-- ================= ABA 1: DASHBOARD DE INDICADORES ================= -->
+      <section id="tab-dash" class="space-y-6">
+        
+        <!-- CARDS DE RESUMO KPI -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Card 1: Total Perdas Mês -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200/90 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Total de Perdas (Mês)</p>
+                <h3 class="text-2xl font-bold text-slate-900 mt-1 tracking-tight">R$ 28.450,80</h3>
+                <div class="flex items-center gap-1.5 mt-2">
+                  <span class="inline-flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                    <i data-lucide="trending-down" class="w-3.5 h-3.5 mr-0.5"></i> -5.5%
+                  </span>
+                  <span class="text-xs text-slate-500">vs. mesmo período de maio</span>
+                </div>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+                <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+              <span>Meta do mês: <strong>< R$ 32.000</strong></span>
+              <span class="text-emerald-700 font-semibold">Dentro da Meta</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Produto com Maior Perda -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200/90 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+            <div class="flex items-start justify-between">
+              <div class="min-w-0 pr-2">
+                <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Maior Perda Individual</p>
+                <h3 class="text-lg font-bold text-brand-900 mt-1 truncate" title="Iogurte Grego Frutas Vermelhas 500g">
+                  Iogurte Grego Frutas 500g
+                </h3>
+                <p class="text-xs font-medium text-slate-600 mt-0.5">Laticínios & Resfriados</p>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="text-sm font-bold text-rose-600">R$ 3.840,00</span>
+                  <span class="text-xs text-slate-500">(420 un. vencidas)</span>
+                </div>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <i data-lucide="package-x" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+              <span>Impacto: <strong>13.5%</strong> do total</span>
+              <button onclick="switchTab('tab-validades')" class="text-brand-500 font-semibold hover:underline">Ver Lotes</button>
+            </div>
+          </div>
+
+          <!-- Card 3: Taxa de Quebra Sobre Faturamento -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200/90 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-brand-500"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Taxa de Quebra Total</p>
+                <h3 class="text-2xl font-bold text-brand-900 mt-1 tracking-tight">1.42%</h3>
+                <div class="flex items-center gap-1.5 mt-2">
+                  <span class="inline-flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                    <i data-lucide="arrow-down-right" class="w-3.5 h-3.5 mr-0.5"></i> -0.18 p.p.
+                  </span>
+                  <span class="text-xs text-slate-500">Meta: definir com a loja</span>
+                </div>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-500">
+                <i data-lucide="percent" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+              <span>Faturamento Base: <strong>R$ 2.01M</strong></span>
+              <span class="text-forest-700 font-semibold">No período</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Economia Gerada por Ações Preventivas -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200/90 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+            <div class="absolute top-0 left-0 w-1.5 h-full bg-forest-600"></div>
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wider text-slate-500">Perdas Evitadas (estimativa)</p>
+                <h3 class="text-2xl font-bold text-forest-700 mt-1 tracking-tight">R$ 19.320,00</h3>
+                <div class="flex items-center gap-1.5 mt-2">
+                  <span class="inline-flex items-center text-xs font-semibold text-forest-700 bg-forest-50 px-2 py-0.5 rounded">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-0.5"></i> 89 de 97 lotes liquidados
+                  </span>
+                  <span class="text-xs text-slate-500">com remarcação</span>
+                </div>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-forest-50 border border-forest-100 flex items-center justify-center text-forest-700">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs text-slate-500">
+              <span>Lotes liquidados: <strong>89 lotes</strong></span>
+              <span class="text-forest-800 font-medium">Estimativa</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÁREA DE GRÁFICOS (Chart.js) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Gráfico de Linha: Evolução das Perdas nos últimos 6 meses -->
+          <div class="lg:col-span-7 bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="text-base font-bold text-brand-900 flex items-center gap-2">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-brand-500"></i>
+                  Evolução Histórica de Perdas (Últimos 6 Meses)
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Comparativo do valor total de quebra em reais (R$) mês a mês</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md font-medium">
+                  <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> Perdas Reais
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md font-medium">
+                  <span class="w-2.5 h-0.5 bg-brand-800"></span> Teto Meta
+                </span>
+              </div>
+            </div>
+            <div class="h-72 w-full relative">
+              <canvas id="lossTrendChart" role="img" aria-label="Perdas mensais caíram de R$ 36 mil em janeiro para R$ 28 mil em junho (parcial). A meta é R$ 32 mil."></canvas>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100 text-center text-xs">
+              <div class="p-2 bg-slate-50 rounded-lg">
+                <span class="text-slate-500 block">Pico de Perdas</span>
+                <span class="font-bold text-rose-600">R$ 38.900 (Março)</span>
+              </div>
+              <div class="p-2 bg-slate-50 rounded-lg">
+                <span class="text-slate-500 block">Menor Índice</span>
+                <span class="font-bold text-forest-700">R$ 28.450 (Junho, parcial)</span>
+              </div>
+              <div class="p-2 bg-slate-50 rounded-lg">
+                <span class="text-slate-500 block">Redução Semestral</span>
+                <span class="font-bold text-brand-500">-21.4% (jan→jun)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfico de Barras / Histograma: Perdas por Categoria e Motivos -->
+          <div class="lg:col-span-5 bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="text-base font-bold text-brand-900 flex items-center gap-2">
+                  <i data-lucide="bar-chart-3" class="w-4 h-4 text-forest-700"></i>
+                  Perdas por Categoria & Motivo
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Distribuição entre Vencimento, Avaria e Furto (R$ mil)</p>
+              </div>
+            </div>
+            <div class="h-72 w-full relative">
+              <canvas id="lossCategoryChart" role="img" aria-label="Perdas por categoria e motivo; Laticínios e Hortifrúti lideram, principalmente por vencimento."></canvas>
+            </div>
+            <div class="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-slate-100 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-brand-500"></span>
+                <span class="text-slate-600 font-medium">Vencimento (62%)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-[#2F855A]"></span>
+                <span class="text-slate-600 font-medium">Avaria/Dano (26%)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded bg-slate-600"></span>
+                <span class="text-slate-600 font-medium">Furto/Desvio (12%)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Seção Inferior: Tabela Resumo Rápido de Setores com Maior Risco -->
+        <div class="bg-white rounded-xl border border-slate-200/90 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h4 class="text-base font-bold text-brand-900">Departamentos mais Críticos (Radar de Atenção)</h4>
+              <p class="text-xs text-slate-500">Status atual das seções do supermercado em relação à prevenção de quebras</p>
+            </div>
+            <span class="text-xs bg-slate-100 text-slate-600 font-medium px-3 py-1 rounded-full">Dados até 13/06, 07:40</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-y border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Departamento</th>
+                  <th class="py-3 px-4">Lotes Monitorados</th>
+                  <th class="py-3 px-4">Em risco agora</th>
+                  <th class="py-3 px-4">Ação Principal</th>
+                  <th class="py-3 px-4">Nível de Risco</th>
+                  <th class="py-3 px-4 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr class="hover:bg-slate-50/80 transition">
+                  <td class="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Laticínios e Embutidos
+                  </td>
+                  <td class="py-3 px-4 text-slate-600">82 lotes ativos</td>
+                  <td class="py-3 px-4 font-bold text-rose-600">R$ 11.230,00</td>
+                  <td class="py-3 px-4 text-slate-700">Antecipar remarcação de 30% em gôndola</td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-xs">Crítico</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button onclick="switchTab('tab-validades')" class="text-brand-500 hover:text-brand-800 font-bold hover:underline">Ver Lotes &rarr;</button>
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-50/80 transition">
+                  <td class="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Padaria & Confeitaria
+                  </td>
+                  <td class="py-3 px-4 text-slate-600">34 lotes ativos</td>
+                  <td class="py-3 px-4 font-bold text-amber-600">R$ 5.840,00</td>
+                  <td class="py-3 px-4 text-slate-700">Ajuste de ficha técnica e produção diária</td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">Atenção Alta</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button onclick="switchTab('tab-validades')" class="text-brand-500 hover:text-brand-800 font-bold hover:underline">Ver Lotes &rarr;</button>
+                  </td>
+                </tr>
+                <tr class="hover:bg-slate-50/80 transition">
+                  <td class="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Carnes & Açougue
+                  </td>
+                  <td class="py-3 px-4 text-slate-600">65 lotes ativos</td>
+                  <td class="py-3 px-4 font-bold text-forest-700">R$ 3.120,00</td>
+                  <td class="py-3 px-4 text-slate-700">Giro rápido e controle de câmara fria ok</td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded-full bg-forest-100 text-forest-800 font-bold text-xs">Estável</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button onclick="switchTab('tab-validades')" class="text-brand-500 hover:text-brand-800 font-bold hover:underline">Ver Lotes &rarr;</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= ABA 2: GESTÃO DE VALIDADES E ALERTAS ================= -->
+      <section id="tab-validades" class="space-y-8 hidden">
+        
+        <!-- Alerta de topo com resumo de tomada de ação -->
+        <div class="bg-gradient-to-r from-brand-900 to-brand-800 rounded-xl p-5 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-brand-700">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center text-amber-300 shrink-0">
+              <i data-lucide="bell-ring" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Central de Ação Operacional de Estoque</h3>
+              <p class="text-xs text-brand-200 mt-0.5">Existem <strong id="c-att" class="text-amber-300">8 lotes em Atenção</strong> precisando de liquidação e <strong id="c-crit" class="text-rose-400">6 lotes Críticos</strong> com retirada obrigatória imediata.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="criarPromocaoTodos()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold rounded-lg text-xs transition flex items-center gap-2 shadow-sm">
+              <i data-lucide="tag" class="w-4 h-4"></i>
+              <span>Promover Todos em Atenção</span>
+            </button>
+            <button onclick="descartarTodosCriticos()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition flex items-center gap-2 shadow-sm">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <span>Descartar Todos Críticos</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= SEÇÃO CRÍTICO (LOTES VENCIDOS) ================= -->
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-rose-500 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="w-3.5 h-3.5 rounded-full bg-rose-600 animate-ping motion-reduce:animate-none"></span>
+              <div>
+                <h3 class="text-lg font-bold text-rose-900 flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-md bg-rose-600 text-white text-xs font-black uppercase tracking-wider">Crítico</span>
+                  Lotes Vencidos (Descarte Obrigatório)
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Produtos vencidos não devem ser vendidos. Retire da área de venda e do estoque.</p>
+              </div>
+            </div>
+            <div class="inline-flex items-center gap-2 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-800">
+              <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-600"></i>
+              <span>Aviso: Retirar de prateleira imediatamente</span>
+            </div>
+          </div>
+
+          <!-- Cards Grid de Itens Críticos -->
+          <div id="criticos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            <!-- Item Crítico 1 -->
+            <div class="bg-white rounded-xl border-2 border-rose-200 p-5 shadow-sm hover:shadow-md transition relative flex flex-col justify-between">
+              <div>
+                <div class="flex items-start justify-between gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    Vencido há 2 dias
+                  </span>
+                  <span class="text-xs font-mono text-slate-500">LOTE #LT-9821</span>
+                </div>
+                <h4 class="text-base font-bold text-slate-900 mt-2">Queijo Prato Fatiado 400g</h4>
+                <p class="text-xs text-slate-500">Marca: Laticínio São Pedro • EAN: 789100023412</p>
+
+                <div class="grid grid-cols-2 gap-2 mt-3 p-2.5 bg-rose-50/60 rounded-lg text-xs">
+                  <div>
+                    <span class="text-slate-500 block">Vencimento:</span>
+                    <strong class="text-rose-700 font-bold">12/06/2024</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Estoque:</span>
+                    <strong class="text-slate-800">48 unidades</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Setor:</span>
+                    <span class="text-slate-700">Frios & Embutidos</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Custo Quebra:</span>
+                    <strong class="text-rose-600 font-bold">R$ 955,20</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-rose-600 flex items-center gap-1">
+                  <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Não pode ser vendido
+                </span>
+                <button onclick="registrarDescarte(this, 'Queijo Prato Fatiado 400g', 'R$ 955,20')" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Registrar Descarte</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Item Crítico 2 -->
+            <div class="bg-white rounded-xl border-2 border-rose-200 p-5 shadow-sm hover:shadow-md transition relative flex flex-col justify-between">
+              <div>
+                <div class="flex items-start justify-between gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    Vencido há 1 dia
+                  </span>
+                  <span class="text-xs font-mono text-slate-500">LOTE #LT-4410</span>
+                </div>
+                <h4 class="text-base font-bold text-slate-900 mt-2">Iogurte Natural Integral 170g</h4>
+                <p class="text-xs text-slate-500">Marca: DanMilk • EAN: 789233400192</p>
+
+                <div class="grid grid-cols-2 gap-2 mt-3 p-2.5 bg-rose-50/60 rounded-lg text-xs">
+                  <div>
+                    <span class="text-slate-500 block">Vencimento:</span>
+                    <strong class="text-rose-700 font-bold">13/06/2024</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Estoque:</span>
+                    <strong class="text-slate-800">120 unidades</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Setor:</span>
+                    <span class="text-slate-700">Laticínios Gôndola 02</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Custo Quebra:</span>
+                    <strong class="text-rose-600 font-bold">R$ 468,00</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-rose-600 flex items-center gap-1">
+                  <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Não pode ser vendido
+                </span>
+                <button onclick="registrarDescarte(this, 'Iogurte Natural Integral 170g', 'R$ 468,00')" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Registrar Descarte</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Item Crítico 3 -->
+            <div class="bg-white rounded-xl border-2 border-rose-200 p-5 shadow-sm hover:shadow-md transition relative flex flex-col justify-between">
+              <div>
+                <div class="flex items-start justify-between gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                    Vencido hoje (00:00)
+                  </span>
+                  <span class="text-xs font-mono text-slate-500">LOTE #LT-7892</span>
+                </div>
+                <h4 class="text-base font-bold text-slate-900 mt-2">Massa Fresca Fettuccine 500g</h4>
+                <p class="text-xs text-slate-500">Marca: BellaPasta • EAN: 789445512001</p>
+
+                <div class="grid grid-cols-2 gap-2 mt-3 p-2.5 bg-rose-50/60 rounded-lg text-xs">
+                  <div>
+                    <span class="text-slate-500 block">Vencimento:</span>
+                    <strong class="text-rose-700 font-bold">14/06/2024</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Estoque:</span>
+                    <strong class="text-slate-800">32 unidades</strong>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Setor:</span>
+                    <span class="text-slate-700">Massas Frescas</span>
+                  </div>
+                  <div>
+                    <span class="text-slate-500 block">Custo Quebra:</span>
+                    <strong class="text-rose-600 font-bold">R$ 380,80</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-rose-600 flex items-center gap-1">
+                  <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Não pode ser vendido
+                </span>
+                <button onclick="registrarDescarte(this, 'Massa Fresca Fettuccine 500g', 'R$ 380,80')" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Registrar Descarte</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= SEÇÃO ATENÇÃO (PRÓXIMOS AO VENCIMENTO) ================= -->
+        <div class="space-y-4 pt-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-amber-500 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span>
+              <div>
+                <h3 class="text-lg font-bold text-amber-950 flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-md bg-amber-500 text-slate-900 text-xs font-black uppercase tracking-wider">Atenção</span>
+                  Lotes Próximos ao Vencimento (Ação Promocional Necessária)
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Produtos que vencem em até <span id="att-days">10</span> dias (conforme Configurações). Aplique remarcação imediata para zerar o estoque.</p>
+              </div>
+            </div>
+            <div class="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-800">
+              <i data-lucide="percent" class="w-4 h-4 text-amber-600"></i>
+              <span>Oportunidade de Recuperação: R$ 4.250 em margem</span>
+            </div>
+          </div>
+
+          <!-- Tabela de Lotes em Atenção -->
+          <div class="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider">
+                  <tr>
+                    <th class="py-3 px-4">Produto & Lote</th>
+                    <th class="py-3 px-4">Departamento</th>
+                    <th class="py-3 px-4">Data Vencimento</th>
+                    <th class="py-3 px-4">Dias Restantes</th>
+                    <th class="py-3 px-4">Estoque Atual</th>
+                    <th class="py-3 px-4">Preço Original</th>
+                    <th class="py-3 px-4">Sugestão de Desconto</th>
+                    <th class="py-3 px-4 text-center">Ação Recomendada</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                  
+                  <!-- Linha 1 -->
+                  <tr class="hover:bg-amber-50/40 transition">
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900 text-sm">Leite UHT Integral 1L (Caixa c/12)</div>
+                      <div class="text-xs text-slate-500 font-mono">LOTE #LT-5519 • EAN: 789102938471</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium">Mercearia Líquida</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">17/06/2024</td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <i data-lucide="clock" class="w-3 h-3"></i> Faltam 3 dias
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">180 unidades</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-500 line-through">R$ 5,49</td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-bold text-forest-700 bg-forest-50 border border-forest-200 px-2 py-0.5 rounded text-xs">
+                        -30% &rarr; R$ 3,84
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      <button onclick="abrirModalPromocao('Leite UHT Integral 1L', '180 un.', 'R$ 5,49', 'R$ 3,84', '30%')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition inline-flex items-center gap-1.5 shadow-sm text-xs">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span>Criar Promoção</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Linha 2 -->
+                  <tr class="hover:bg-amber-50/40 transition">
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900 text-sm">Pão de Forma Tradicional 500g</div>
+                      <div class="text-xs text-slate-500 font-mono">LOTE #LT-2209 • EAN: 789456123789</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium">Padaria Industrial</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">18/06/2024</td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <i data-lucide="clock" class="w-3 h-3"></i> Faltam 4 dias
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">65 unidades</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-500 line-through">R$ 8,90</td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-bold text-forest-700 bg-forest-50 border border-forest-200 px-2 py-0.5 rounded text-xs">
+                        -40% &rarr; R$ 5,34
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      <button onclick="abrirModalPromocao('Pão de Forma Tradicional 500g', '65 un.', 'R$ 8,90', 'R$ 5,34', '40%')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition inline-flex items-center gap-1.5 shadow-sm text-xs">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span>Criar Promoção</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Linha 3 -->
+                  <tr class="hover:bg-amber-50/40 transition">
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900 text-sm">Requeijão Cremoso Tradicional 200g</div>
+                      <div class="text-xs text-slate-500 font-mono">LOTE #LT-8841 • EAN: 789987654321</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium">Laticínios & Resfriados</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">19/06/2024</td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <i data-lucide="clock" class="w-3 h-3"></i> Faltam 5 dias
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">94 unidades</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-500 line-through">R$ 9,50</td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-bold text-forest-700 bg-forest-50 border border-forest-200 px-2 py-0.5 rounded text-xs">
+                        -25% &rarr; R$ 7,12
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      <button onclick="abrirModalPromocao('Requeijão Cremoso 200g', '94 un.', 'R$ 9,50', 'R$ 7,12', '25%')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition inline-flex items-center gap-1.5 shadow-sm text-xs">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span>Criar Promoção</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Linha 4 -->
+                  <tr class="hover:bg-amber-50/40 transition">
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900 text-sm">Hambúrguer Bovino Congelado 672g (12un)</div>
+                      <div class="text-xs text-slate-500 font-mono">LOTE #LT-3312 • EAN: 789123456000</div>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium">Congelados</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">21/06/2024</td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <i data-lucide="clock" class="w-3 h-3"></i> Faltam 7 dias
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">52 caixas</td>
+                    <td class="py-3.5 px-4 font-medium text-slate-500 line-through">R$ 24,90</td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-bold text-forest-700 bg-forest-50 border border-forest-200 px-2 py-0.5 rounded text-xs">
+                        -20% &rarr; R$ 19,92
+                      </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                      <button onclick="abrirModalPromocao('Hambúrguer Bovino 672g', '52 cx.', 'R$ 24,90', 'R$ 19,92', '20%')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition inline-flex items-center gap-1.5 shadow-sm text-xs">
+                        <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                        <span>Criar Promoção</span>
+                      </button>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span><span id="att-foot"></span></span>
+              <button class="text-brand-500 hover:text-brand-800 font-bold" onclick="buscar('');document.getElementById('busca').value=''">Limpar busca</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= ABA 3: CONFIGURAÇÕES DE AUTOMAÇÃO ================= -->
+      <section id="tab-config" class="max-w-4xl mx-auto space-y-6 hidden">
+        
+        <!-- Cabeçalho do módulo -->
+        <div class="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-500 shrink-0">
+            <i data-lucide="sliders" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-brand-900">Parâmetros e Automações de Disparo de Alertas</h3>
+            <p class="text-xs text-slate-500 mt-1">Configure o gatilho temporal preventivo de vencimento, canais de distribuição de e-mails para encarregados de setor e as políticas de conformidade sanitária da rede.</p>
+          </div>
+        </div>
+
+        <form id="automation-form" onsubmit="salvarConfiguracoes(event)" class="space-y-6">
+          
+          <!-- Bloco 1: Slider / Input de Antecedência de Vencimento -->
+          <div class="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="calendar-clock" class="w-4 h-4 text-brand-500"></i>
+                  Gatilho de Antecedência para Lotes Próximos ao Vencimento
+                </h4>
+                <p class="text-xs text-slate-500 mt-0.5">Determine com quantos dias de antecedência o sistema deve marcar o produto em status de "Atenção" e sugerir remarcação. Esse prazo também define a lista de Atenção.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500">Configurado para:</span>
+                <span id="slider-badge" class="px-3 py-1 bg-brand-50 border border-brand-200 text-brand-800 font-extrabold text-sm rounded-lg">
+                  10 dias
+                </span>
+              </div>
+            </div>
+
+            <!-- Slider Interativo e Botões Pré-definidos -->
+            <div class="pt-3 space-y-4">
+              <div class="flex items-center gap-4">
+                <span class="text-xs text-slate-500 font-bold">3 dias</span>
+                <input id="days-slider" type="range" min="3" max="30" value="10" step="1"
+                  oninput="updateDays(this.value)"
+                  class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-500 focus:outline-none">
+                <span class="text-xs text-slate-500 font-bold">30 dias</span>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 pt-1">
+                <span class="text-xs text-slate-500 font-medium mr-1">Predefinições recomendadas:</span>
+                <button type="button" onclick="setDays(5)" class="px-3 py-1 rounded-md text-xs font-medium bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-900 border border-slate-200 transition">
+                  5 dias (Perecíveis rápidos)
+                </button>
+                <button type="button" onclick="setDays(10)" class="px-3 py-1 rounded-md text-xs font-medium bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-900 border border-slate-200 transition">
+                  10 dias (Padrão Geral)
+                </button>
+                <button type="button" onclick="setDays(15)" class="px-3 py-1 rounded-md text-xs font-medium bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-900 border border-slate-200 transition">
+                  15 dias (Mercearia seca)
+                </button>
+                <button type="button" onclick="setDays(20)" class="px-3 py-1 rounded-md text-xs font-medium bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-900 border border-slate-200 transition">
+                  20 dias (Conservas/Bebidas)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloco 2: Toggle de Disparo de E-mails -->
+          <div class="bg-white p-6 rounded-xl border border-slate-200/90 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="max-w-xl">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="mail" class="w-4 h-4 text-forest-700"></i>
+                  Notificações por E-mail para Produtos Próximos ao Vencimento
+                </h4>
+                <p class="text-xs text-slate-500 mt-1">
+                  Envia um relatório matinal diário (às 06:30) consolidando todos os lotes que entraram na janela de alerta para os gerentes e encarregados das seções responsáveis.
+                </p>
+              </div>
+
+              <!-- Toggle switch estilizado -->
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" aria-label="E-mail preventivo" id="email-toggle" class="sr-only peer" checked onchange="toggleEmailOptions(this.checked)">
+                <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-forest-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-forest-600"></div>
+              </label>
+            </div>
+
+            <!-- Opções adicionais de e-mail (condicionais) -->
+            <div id="email-options-box" class="pt-3 border-t border-slate-100 space-y-3">
+              <label class="block text-xs font-semibold text-slate-700">Destinatários dos Alertas Automáticos</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                  <input type="checkbox" checked class="rounded text-brand-500 focus:ring-brand-500">
+                  <span class="text-slate-800 font-medium">Encarregados de Seção (Setorial)</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                  <input type="checkbox" checked class="rounded text-brand-500 focus:ring-brand-500">
+                  <span class="text-slate-800 font-medium">Gerência de Prevenção de Perdas</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                  <input type="checkbox" checked class="rounded text-brand-500 focus:ring-brand-500">
+                  <span class="text-slate-800 font-medium">Equipe Comercial / Compradores</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                  <input type="checkbox" class="rounded text-brand-500 focus:ring-brand-500">
+                  <span class="text-slate-800 font-medium">Diretoria de Operações</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloco 3: Campo de Regra Fixo e Bloqueado (Segurança Obrigatória) -->
+          <div class="bg-white p-6 rounded-xl border-2 border-brand-800 space-y-3 relative overflow-hidden" role="region" aria-label="Regra de segurança, somente leitura">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-800 border border-brand-800 flex items-center justify-center text-white shrink-0">
+                  <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-sm font-bold text-slate-800">
+                      Alerta de Produto Vencido: Disparo Imediato e Inalterável (Regra de Segurança)
+                    </h4>
+                    <span class="px-2 py-0.5 rounded text-xs font-extrabold uppercase tracking-wide bg-green-100 text-green-800">
+                      Sempre ativa · Somente leitura
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Produto vencido não deve ser vendido. Por isso, no dia do vencimento (D+0) o sistema envia o aviso por e-mail ao responsável pelo estoque e à gerência, repete todo dia até a retirada ser registrada e não aceita adiamento. Você pode adicionar destinatários, mas não remover os obrigatórios.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Input readonly simulado com aparência inativa -->
+            <div class="pt-2">
+              <div class="relative">
+                <input type="text" 
+                  value="Ativa: aviso no dia do vencimento, repetido diariamente até a retirada ser registrada" 
+                  disabled 
+                  readonly 
+                  class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg px-3.5 py-2.5 cursor-not-allowed select-none focus:outline-none">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                  <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 italic mt-1.5 flex items-center gap-1">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                Esta regra não pode ser desativada ou postergada por nenhum nível de usuário da filial.
+              </p>
+            </div>
+          </div>
+
+          <!-- Botões de Ação do Formulário -->
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" onclick="setDays(10);showToast('Padrões restaurados','Antecedência de 10 dias. A regra de produto vencido não muda.','rotate-ccw','forest')" class="px-5 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition">
+              Restaurar Padrões
+            </button>
+            <button type="submit" class="px-6 py-2.5 bg-forest-700 hover:bg-forest-800 text-white rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-md">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Salvar Alterações de Automação</span>
+            </button>
+          </div>
+
+        </form>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODAL: CRIAR PROMOÇÃO RÁPIDA ================= -->
+  <div id="modal-promocao" role="dialog" aria-modal="true" aria-labelledby="modal-tt" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+            <i data-lucide="tag" class="w-4 h-4"></i>
+          </div>
+          <h3 id="modal-tt" class="text-base font-bold text-brand-900">Criar Promoção de Validade</h3>
+        </div>
+        <button aria-label="Fechar" onclick="fecharModalPromocao()" class="text-slate-500 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="py-4 space-y-3 text-xs">
+        <div>
+          <span class="text-slate-500 block">Produto Selecionado:</span>
+          <p id="modal-prod-nome" class="text-sm font-bold text-slate-900">Nome do Produto</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <div>
+            <span class="text-slate-500 block">Quantidade em estoque:</span>
+            <strong id="modal-prod-estoque" class="text-slate-800 text-sm">0 un.</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Preço de Tabela:</span>
+            <span id="modal-prod-preco-orig" class="text-slate-600 line-through text-sm">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 pt-1">
+          <label class="block font-semibold text-slate-700">Percentual de Desconto Sugerido:</label>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="setModalDesconto('20%')" class="desc-btn flex-1 py-2 border-2 border-slate-200 rounded-lg hover:border-amber-500 font-bold text-slate-700">20%</button>
+            <button type="button" onclick="setModalDesconto('30%')" class="desc-btn flex-1 py-2 border-2 border-slate-200 rounded-lg hover:border-amber-500 font-bold text-slate-700">30%</button>
+            <button type="button" onclick="setModalDesconto('40%')" class="desc-btn flex-1 py-2 border-2 border-slate-200 rounded-lg hover:border-amber-500 font-bold text-slate-700">40%</button>
+            <button type="button" onclick="setModalDesconto('50%')" class="desc-btn flex-1 py-2 border-2 border-slate-200 rounded-lg hover:border-amber-500 font-bold text-slate-700">50%</button>
+          </div>
+        </div>
+
+        <div class="p-3 bg-forest-50 border border-forest-200 rounded-xl flex items-center justify-between">
+          <span class="text-forest-900 font-medium">Preço promocional a praticar:</span>
+          <span id="modal-prod-preco-promo" class="text-base font-extrabold text-forest-700">R$ 0,00</span>
+        </div>
+
+        <label class="flex items-center gap-2 text-slate-600 pt-1">
+          <input type="checkbox" checked class="rounded text-forest-600 focus:ring-forest-600">
+          <span>Incluir remarcação de etiqueta na lista de tarefas da equipe</span>
+        </label>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button onclick="fecharModalPromocao()" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold">Cancelar</button>
+        <button onclick="confirmarPromocao()" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Registrar promoção</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast" role="status" aria-live="polite" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 max-w-sm w-full bg-slate-900 text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 pointer-events-none">
+    <div id="toast-icon" class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+      <i data-lucide="check-circle" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p id="toast-title" class="text-xs font-bold text-white">Sucesso</p>
+      <p id="toast-desc" class="text-xs text-slate-300">Ação realizada com êxito.</p>
+    </div>
+  </div>
+
+  <!-- SCRIPTS SPA & LOGIC -->
+  <script>
+    // Inicializa Lucide Icons
+    lucide.createIcons();
+
+    // Chart instances references
+    let lossTrendChart = null;
+    let lossCategoryChart = null;
+
+    // Alternador de Abas (Tabs) SPA
+    function switchTab(tabId) {
+      // Lista de seções
+      const sections = ['tab-dash', 'tab-validades', 'tab-config'];
+      const buttons = {
+        'tab-dash': document.getElementById('tab-btn-dash'),
+        'tab-validades': document.getElementById('tab-btn-validades'),
+        'tab-config': document.getElementById('tab-btn-config')
+      };
+
+      const titleMap = {
+        'tab-dash': {
+          title: 'Dashboard de Indicadores de Perdas',
+          subtitle: 'Panorama analítico e monitoramento financeiro de quebras de estoque'
+        },
+        'tab-validades': {
+          title: 'Gestão de Validades e Ações Rápidas',
+          subtitle: 'Atuação imediata sobre lotes em risco de perda e expiração sanitária'
+        },
+        'tab-config': {
+          title: 'Configurações de Automação de Alertas',
+          subtitle: 'Regras paramétricas de notificação preventiva e compliance de segurança'
+        }
+      };
+
+      // Ocultar todas as seções e resetar estilos de botão
+      sections.forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.classList.add('hidden');
+      });
+
+      Object.keys(buttons).forEach(btnKey => {
+        const btn = buttons[btnKey];
+        if (btn) {
+          btn.classList.remove('bg-brand-800', 'text-white', 'shadow-sm', 'border-brand-700/50');
+          btn.classList.add('text-slate-300', 'border-transparent');
+        }
+      });
+
+      // Ativar a aba solicitada
+      const activeSection = document.getElementById(tabId);
+      if (activeSection) {
+        activeSection.classList.remove('hidden');
+      }
+
+      const activeBtn = buttons[tabId];
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-300', 'border-transparent');
+        activeBtn.classList.add('bg-brand-800', 'text-white', 'shadow-sm', 'border-brand-700/50');
+      }
+
+      // Atualizar título do cabeçalho
+      if (titleMap[tabId]) {
+        document.getElementById('page-title').innerText = titleMap[tabId].title;
+        document.getElementById('page-subtitle').innerText = titleMap[tabId].subtitle;
+      }
+
+      // Se entrou no Dashboard, inicializa/redimensiona gráficos
+      if (tabId === 'tab-dash') {
+        setTimeout(initCharts, 50);
+      }
+      
+      lucide.createIcons();
+    }
+
+    // Inicialização dos Gráficos com Chart.js
+    function initCharts() {
+      // 1. Gráfico de Linha (Evolução 6 Meses)
+      const ctxLine = document.getElementById('lossTrendChart');
+      if (ctxLine && !lossTrendChart) {
+        lossTrendChart = new Chart(ctxLine, {
+          type: 'line',
+          data: {
+            labels: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho (parcial)'],
+            datasets: [
+              {
+                label: 'Perdas Reais (R$)',
+                data: [36200, 34500, 38900, 31800, 30100, 28450],
+                borderColor: '#1b4d7e', // Azul marinho brand
+                backgroundColor: 'rgba(27, 77, 126, 0.08)',
+                borderWidth: 3,
+                tension: 0.35,
+                fill: false,
+                pointBackgroundColor: '#1b4d7e',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+              },
+              {
+                label: 'Teto Meta (R$ 32.000)',
+                data: [32000, 32000, 32000, 32000, 32000, 32000],
+                borderColor: '#0F2942',
+                borderWidth: 2,
+                borderDash: [6, 6],
+                pointRadius: 0,
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0f2942',
+                padding: 12,
+                titleFont: { size: 13, weight: 'bold' },
+                bodyFont: { size: 12 },
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': R$ ' + context.parsed.y.toLocaleString('pt-BR');
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                min: 0,
+                grid: { color: '#f1f5f9' },
+                ticks: {
+                  callback: val => 'R$ ' + (val/1000) + 'k',
+                  font: { size: 11, family: 'Inter' },
+                  color: '#64748b'
+                }
+              },
+              x: {
+                grid: { display: false },
+                ticks: {
+                  font: { size: 11, family: 'Inter' },
+                  color: '#64748b'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Gráfico de Barras (Categorias x Motivos)
+      const ctxBar = document.getElementById('lossCategoryChart');
+      if (ctxBar && !lossCategoryChart) {
+        lossCategoryChart = new Chart(ctxBar, {
+          type: 'bar',
+          data: {
+            labels: ['Laticínios', 'Hortifrúti', 'Padaria', 'Açougue', 'Mercearia'],
+            datasets: [
+              {
+                label: 'Vencimento',
+                data: [6.2, 4.6, 3.1, 1.9, 1.8],
+                backgroundColor: '#1b4d7e',
+                borderRadius: 4
+              },
+              {
+                label: 'Avaria/Dano',
+                data: [1.6, 2.3, 1.2, 1.0, 1.4],
+                backgroundColor: '#2F855A',
+                borderRadius: 4
+              },
+              {
+                label: 'Furto/Desvio',
+                data: [0.8, 0.3, 0.4, 1.0, 0.85],
+                backgroundColor: '#475569',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0f2942',
+                padding: 12,
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': R$ ' + (context.parsed.y * 1000).toLocaleString('pt-BR');
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { font: { size: 11 }, color: '#64748b' }
+              },
+              y: {
+                stacked: true,
+                grid: { color: '#f1f5f9' },
+                ticks: {
+                  callback: val => 'R$ ' + val + 'k',
+                  font: { size: 11 },
+                  color: '#64748b'
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Inicializa na carga da página
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+    });
+
+    // Funções da Aba 3 (Configurações e Slider)
+    function updateDays(val) {
+      document.getElementById('days-slider').value = val;
+      document.getElementById('slider-badge').innerText = val + ' dias';
+    }
+
+    function setDays(val) {
+      updateDays(val);
+    }
+
+    function toggleEmailOptions(checked) {
+      const box = document.getElementById('email-options-box');
+      if (checked) {
+        box.classList.remove('opacity-40', 'pointer-events-none');
+      } else {
+        box.classList.add('opacity-40', 'pointer-events-none');
+      }
+    }
+
+    function salvarConfiguracoes(e) {
+      e.preventDefault();
+      const dias = document.getElementById('days-slider').value;
+      const emailsAtivos = document.getElementById('email-toggle').checked;
+      
+      showToast(
+        'Configurações Salvas!', 
+        `Alerta de vencimento ajustado para ${dias} dias. Envio de e-mails: ${emailsAtivos ? 'Ativado' : 'Desativado'}.`,
+        'check-circle',
+        'forest'
+      );
+    }
+
+    // Modal de Promoção
+    let itemAtualPromocao = {};
+
+    function abrirModalPromocao(nome, estoque, precoOrig, precoPromo, perc) {
+      itemAtualPromocao = { nome, estoque, precoOrig, precoPromo, perc };
+      document.getElementById('modal-prod-nome').innerText = nome;
+      document.getElementById('modal-prod-estoque').innerText = estoque;
+      document.getElementById('modal-prod-preco-orig').innerText = precoOrig;
+      document.getElementById('modal-prod-preco-promo').innerText = precoPromo + ` (${perc} OFF)`;
+      
+      const modal = document.getElementById('modal-promocao');
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function setModalDesconto(perc) {
+      document.getElementById('modal-prod-preco-promo').innerText = 'Aplicando ' + perc + ' OFF';
+    }
+
+    function fecharModalPromocao() {
+      document.getElementById('modal-promocao').classList.add('hidden');
+    }
+
+    function confirmarPromocao() {
+      fecharModalPromocao();
+      showToast(
+        'Promoção Ativada no PDV!',
+        `${itemAtualPromocao.nome || 'Produto'} agora com preço remarcado e etiquetas geradas.`,
+        'tag',
+        'forest'
+      );
+    }
+
+    function criarPromocaoTodos() {
+      showToast(
+        'Promoção em Lote Criada!',
+        'Todos os 8 lotes em Atenção receberam desconto de 30% a 40% no sistema central.',
+        'sparkles',
+        'forest'
+      );
+    }
+
+    // Descarte de Lotes Críticos
+    function registrarDescarte(buttonEl, nomeProduto, custo) {
+      const card = buttonEl.closest('.bg-white');
+      if (card) {
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+        buttonEl.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Descartado`;
+        lucide.createIcons();
+      }
+      showToast(
+        'Descarte Sanitário Registrado!',
+        `${nomeProduto} baixado do estoque. Perda computada: ${custo}.`,
+        'trash-2',
+        'rose'
+      );
+    }
+
+    function descartarTodosCriticos() {
+      const container = document.getElementById('criticos-container');
+      const cards = container.querySelectorAll('.bg-white');
+      cards.forEach(c => {
+        c.style.opacity = '0.4';
+        c.style.pointerEvents = 'none';
+      });
+      showToast(
+        'Todos os Lotes Vencidos Baixados!',
+        '6 lotes foram removidos do inventário e enviados para incineração/descarte com laudo.',
+        'shield-alert',
+        'rose'
+      );
+    }
+
+    // Sistema de Feedback Toast
+    let toastTimeout = null;
+    function showToast(title, desc, iconName, themeColor = 'forest') {
+      const toast = document.getElementById('toast');
+      const toastTitle = document.getElementById('toast-title');
+      const toastDesc = document.getElementById('toast-desc');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastTitle.innerText = title;
+      toastDesc.innerText = desc;
+
+      if (themeColor === 'rose') {
+        toastIcon.className = "w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0";
+      } else {
+        toastIcon.className = "w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0";
+      }
+      toastIcon.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 8000);
+    }
+  </script>
+
+<script>
+/* ===== Alinhamentos v2 (sem backend; dados em memória) ===== */
+let win=10;const logAud=[{t:'11/06/2024 09:12',u:'Rodrigo Cardozo',a:'Descarte registrado',e:'Leite Integral 1L · LT-4102',v:'R$ 97,20'}];
+const agora=()=>new Date().toLocaleString('pt-BR').slice(0,16).replace(',','');
+const set=(i,t)=>{const e=document.getElementById(i);if(e)e.textContent=t};
+const crits=()=>[...document.querySelectorAll('#criticos-container > div')],pend=()=>crits().filter(c=>!c.dataset.done),rows=()=>[...document.querySelectorAll('#tab-validades table tbody tr')];
+const vc=c=>c.querySelectorAll('.grid > div')[3].lastElementChild.textContent;
+document.body.insertAdjacentHTML('beforeend','<dialog id="dlg-c" aria-labelledby="dlg-c-t" class="rounded-2xl p-6 w-full shadow-2xl backdrop:bg-slate-900/60"></dialog>');
+function dlgC(t,b,ok,cls,fn,chk){const d=document.getElementById('dlg-c');d.className='rounded-2xl p-6 w-full shadow-2xl backdrop:bg-slate-900/60 '+(ok?'max-w-md':'max-w-3xl');
+d.innerHTML=`<h3 id="dlg-c-t" class="text-base font-bold text-brand-900 mb-2">${t}</h3><div class="text-sm text-slate-700 space-y-2">${b}</div>${chk?'<label class="flex items-center gap-2 mt-3 text-sm font-medium"><input type="checkbox"> Conferi as quantidades</label>':''}<div class="flex justify-end gap-2 mt-5"><button data-x autofocus class="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-lg text-sm font-semibold">${ok?'Cancelar':'Fechar'}</button>${ok?`<button data-ok ${chk?'disabled':''} class="px-4 py-2 rounded-lg text-sm font-bold text-white disabled:opacity-50 ${cls}">${ok}</button>`:''}</div>`;
+d.querySelector('[data-x]').onclick=()=>d.close();if(ok){const o=d.querySelector('[data-ok]');o.onclick=()=>{d.close();fn()};const k=d.querySelector('input');if(k)k.onchange=()=>o.disabled=!k.checked}d.showModal()}
+function baixar(c,n,v){c.dataset.done=1;c.style.opacity='.4';c.style.pointerEvents='none';c.querySelector('button').innerHTML='<i data-lucide="check" class="w-3.5 h-3.5"></i> Descartado';lucide.createIcons();logAud.unshift({t:agora(),u:'Rodrigo Cardozo',a:'Descarte registrado',e:n+' · '+c.querySelector('span.font-mono').textContent,v})}
+window.registrarDescarte=function(btn,n,v){const c=btn.closest('#criticos-container > div');dlgC('Registrar descarte',`<p><b>${n}</b></p><p>Valor a registrar: <b>${v}</b></p><p>O lote sai do estoque, entra nas perdas do mês e fica no histórico.</p>`,`Confirmar descarte (${v})`,'bg-red-700 hover:bg-red-800',()=>{baixar(c,n,v);showToast('Descarte registrado',`${n} baixado do estoque. Perda computada: ${v}.`,'trash-2','rose');upd()})};
+window.descartarTodosCriticos=function(){const P=pend();if(!P.length)return showToast('Nada a descartar','Não há lotes críticos pendentes.','check-circle','forest');dlgC(`Revisar descarte de ${P.length} lotes`,'<ul class="list-disc pl-5">'+P.map(c=>`<li>${c.querySelector('h4').textContent}: ${vc(c)}</li>`).join('')+'</ul>',`Confirmar descarte de ${P.length} lotes`,'bg-red-700 hover:bg-red-800',()=>{P.forEach(c=>baixar(c,c.querySelector('h4').textContent,vc(c)));showToast('Lotes descartados',`${P.length} lotes baixados e registrados no histórico.`,'shield-alert','rose');upd()},1)};
+function promo(r){r.dataset.done=1;r.children[3].innerHTML='<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">Promoção registrada</span>';const b=r.querySelector('button');b.disabled=true;b.className='px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-200 text-slate-700';b.textContent='Em acompanhamento';logAud.unshift({t:agora(),u:'Rodrigo Cardozo',a:'Promoção registrada',e:r.querySelector('.font-bold').textContent+' · '+r.children[0].children[1].textContent.split('•')[0].trim(),v:r.children[6].textContent.trim()})}
+window.criarPromocaoTodos=function(){const P=rows().filter(r=>+r.dataset.d<=win&&!r.dataset.done);if(!P.length)return;dlgC(`Aplicar descontos sugeridos a ${P.length} lotes?`,'<ul class="list-disc pl-5">'+P.map(r=>`<li>${r.querySelector('.font-bold').textContent}: ${r.children[6].textContent.trim()}</li>`).join('')+'</ul><p class="text-xs text-slate-500">A loja remarca etiqueta e preço; o sistema registra a decisão.</p>','Registrar promoções','bg-amber-500 hover:bg-amber-600 !text-slate-900',()=>{P.forEach(promo);showToast('Promoções registradas',`${P.length} lotes em acompanhamento.`,'sparkles','forest');upd()})};
+let rowAt=null;const num=t=>parseFloat(t.replace(/[^\d,]/g,'').replace(',','.')),brl=v=>'R$ '+v.toFixed(2).replace('.',',');
+window.abrirModalPromocao=function(n,e,po,pp,pc){rowAt=document.activeElement.closest('tr');itemAtualPromocao={nome:n,estoque:e,precoOrig:po,perc:pc};document.getElementById('modal-prod-nome').innerText=n;document.getElementById('modal-prod-estoque').innerText=e;document.getElementById('modal-prod-preco-orig').innerText=po;setModalDesconto(pc);document.getElementById('modal-promocao').classList.remove('hidden');lucide.createIcons();document.querySelector('#modal-promocao button').focus()};
+window.setModalDesconto=function(pc){const p=parseFloat(pc);itemAtualPromocao.perc=p+'%';document.getElementById('modal-prod-preco-promo').innerText=`${brl(num(itemAtualPromocao.precoOrig)*(1-p/100))} (${p}% OFF)`;document.querySelectorAll('.desc-btn').forEach(b=>{const on=parseFloat(b.textContent)==p;b.setAttribute('aria-pressed',on);b.classList.toggle('border-amber-500',on);b.classList.toggle('bg-amber-50',on)})};
+window.confirmarPromocao=function(){fecharModalPromocao();if(rowAt)promo(rowAt);showToast('Promoção registrada',`${itemAtualPromocao.nome} com ${itemAtualPromocao.perc} de desconto. A loja remarca etiqueta e preço.`,'tag','forest');upd()};
+document.addEventListener('keydown',e=>{if(e.key=='Escape')fecharModalPromocao()});
+window.salvarConfiguracoes=function(e){e.preventDefault();const d=+document.getElementById('days-slider').value,em=document.getElementById('email-toggle').checked;win=d;logAud.unshift({t:agora(),u:'Rodrigo Cardozo',a:'Configuração alterada',e:`Antecedência: ${d} dias · e-mail ${em?'ativado':'desativado'}`,v:''});upd();showToast('Configurações salvas',`Lista de Atenção: lotes que vencem em até ${d} dias. E-mail preventivo ${em?'ativado':'desativado'}. O aviso de produto vencido continua sempre ativo.`,'check-circle','forest')};
+const _te=window.toggleEmailOptions;window.toggleEmailOptions=function(c){_te(c);document.getElementById('email-options-box').inert=!c};
+window.abrirAuditoria=function(){dlgC('Auditoria de descartes e promoções','<p class="text-xs text-slate-500">Registros imutáveis neste protótipo.</p><div class="overflow-x-auto"><table class="w-full text-xs text-left"><tr><th class="py-2 pr-3">Data/hora</th><th class="pr-3">Usuário</th><th class="pr-3">Ação</th><th class="pr-3">Produto / lote</th><th>Valor</th></tr>'+logAud.map(l=>`<tr class="border-t border-slate-100"><td class="py-2 pr-3">${l.t}</td><td class="pr-3">${l.u}</td><td class="pr-3 font-semibold">${l.a}</td><td class="pr-3">${l.e}</td><td>${l.v}</td></tr>`).join('')+'</table></div>')};
+window.buscar=function(t){t=t.toLowerCase();if(t&&document.getElementById('tab-validades').classList.contains('hidden'))switchTab('tab-validades');crits().forEach(c=>c.classList.toggle('hidden',!!t&&!c.textContent.toLowerCase().includes(t)));rows().forEach(r=>r.classList.toggle('hidden',+r.dataset.d>win||(!!t&&!r.textContent.toLowerCase().includes(t))))};
+function upd(){const nc=pend().length,rs=rows();rs.forEach(r=>r.classList.toggle('hidden',+r.dataset.d>win));const v=rs.filter(r=>+r.dataset.d<=win),na=v.filter(r=>!r.dataset.done).length;set('sb-crit',nc+' crít.');set('sb-att',na+' aten.');set('cta-risk',(nc+na)+' Itens em Risco');set('c-att',na+' lotes em Atenção');set('c-crit',nc+' lotes Críticos');set('att-days',win);set('att-foot','Exibindo '+v.length+' de '+rs.length+' lotes nesta janela.')}
+/* lotes que faltavam para fechar 6 críticos e 8 em atenção */
+const C0=document.querySelector('#criticos-container > div');
+[['Vencido há 3 dias','LT-6120','Presunto Fatiado 200g','Marca: Frios do Vale • EAN: 789300011223','11/06/2024','40 unidades','Frios & Embutidos','R$ 340,00'],['Vencido há 1 dia','LT-3377','Pão Francês (pacote)','Marca: Padaria Interna • EAN: 789300011230','13/06/2024','25 unidades','Padaria','R$ 155,00'],['Vencido há 2 dias','LT-5051','Alface Crespa','Marca: Horta Local • EAN: 789300011247','12/06/2024','60 unidades','Hortifrúti','R$ 144,00']].forEach(a=>{const c=C0.cloneNode(true);c.querySelector('span.bg-rose-100').textContent=a[0];c.querySelector('span.font-mono').textContent='LOTE #'+a[1];c.querySelector('h4').textContent=a[2];c.querySelector('p.text-xs').textContent=a[3];const g=c.querySelectorAll('.grid > div');a.slice(4).forEach((x,i)=>g[i].lastElementChild.textContent=x);c.querySelector('button').setAttribute('onclick',`registrarDescarte(this,'${a[2]}','${a[7]}')`);C0.parentNode.appendChild(c)});
+const R0=rows()[0];
+[['Manteiga 200g','LT-7001','789200100017','Laticínios & Resfriados','20/06/2024',6,'70 unidades',12.9,25],['Iogurte Grego Frutas 500g','LT-7102','789200100024','Laticínios & Resfriados','19/06/2024',5,'110 unidades',7.9,30],['Biscoito Recheado 130g','LT-7203','789200100031','Mercearia Seca','23/06/2024',9,'200 unidades',3.49,20],['Mussarela Fatiada 150g','LT-7304','789200100048','Frios & Embutidos','22/06/2024',8,'45 unidades',14.9,20]].forEach(a=>{const r=R0.cloneNode(true),t=r.children,pn=Math.round(a[7]*(1-a[8]/100)*100)/100;t[0].children[0].textContent=a[0];t[0].children[1].textContent=`LOTE #${a[1]} • EAN: ${a[2]}`;t[1].textContent=a[3];t[2].textContent=a[4];t[3].querySelector('span').innerHTML=`<i data-lucide="clock" class="w-3 h-3"></i> Faltam ${a[5]} dias`;t[4].textContent=a[6];t[5].textContent=brl(a[7]);t[6].firstElementChild.textContent=`-${a[8]}% → ${brl(pn)}`;t[7].querySelector('button').setAttribute('onclick',`abrirModalPromocao('${a[0]}','${a[6].replace('unidades','un.')}','${brl(a[7])}','${brl(pn)}','${a[8]}%')`);R0.parentNode.appendChild(r)});
+rows().forEach(r=>r.dataset.d=r.children[3].textContent.match(/\d+/)[0]);
+const DR=document.querySelectorAll('#tab-dash tbody tr')[1],HR=DR.cloneNode(true);HR.children[0].lastChild.textContent=' Hortifrúti';HR.children[1].textContent='41 lotes ativos';HR.children[2].textContent='R$ 4.120,00';HR.children[3].textContent='Reforçar giro e checagem diária';DR.after(HR);
+upd();lucide.createIcons();
+</script>
+</body>
+</html>
