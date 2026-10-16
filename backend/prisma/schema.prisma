@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MovementType {
+  SALE
+  DISCARD
+}
+
+enum PromotionStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum EtlStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Category {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique @db.VarChar(100)
+  products  Product[]
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+}
+
+model Product {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @db.VarChar(160)
+  sku        String   @unique @db.VarChar(60)
+  barcode    String?  @unique @db.VarChar(40)
+  categoryId String   @db.Uuid
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  active     Boolean  @default(true)
+  lots       Lot[]
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([categoryId])
+}
+
+model Lot {
+  id              String      @id @default(uuid()) @db.Uuid
+  code            String      @unique @db.VarChar(60)
+  productId       String      @db.Uuid
+  product         Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  expiresAt       DateTime    @db.Date
+  initialQuantity Int
+  balance         Int
+  unitCostCents   Int
+  unitPriceCents  Int
+  movements       Movement[]
+  promotions      Promotion[]
+  createdAt       DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(3)
+
+  @@index([productId])
+  @@index([expiresAt, balance])
+}
+
+model Promotion {
+  id              String          @id @default(uuid()) @db.Uuid
+  lotId           String          @db.Uuid
+  lot             Lot             @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  discountPercent Int
+  unitPriceCents  Int
+  initialQuantity Int
+  status          PromotionStatus @default(ACTIVE)
+  startedAt       DateTime        @default(now()) @db.Timestamptz(3)
+  endedAt         DateTime?       @db.Timestamptz(3)
+  movements       Movement[]
+
+  @@index([lotId, status])
+}
+
+model Movement {
+  id             String       @id @default(uuid()) @db.Uuid
+  lotId          String       @db.Uuid
+  lot            Lot          @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  promotionId    String?      @db.Uuid
+  promotion      Promotion?   @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  type           MovementType
+  quantity       Int
+  unitCostCents  Int
+  unitPriceCents Int
+  reason         String?      @db.VarChar(300)
+  requestKey     String       @unique @db.Uuid
+  occurredAt     DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([lotId, occurredAt])
+  @@index([promotionId])
+  @@index([occurredAt, type])
+}
+
+model Settings {
+  id        Int      @id @default(1)
+  alertDays Int      @default(10)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model EtlRun {
+  id             String    @id @default(uuid()) @db.Uuid
+  status         EtlStatus @default(RUNNING)
+  processedCount Int       @default(0)
+  error          String?
+  startedAt      DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt     DateTime? @db.Timestamptz(3)
+
+  @@index([status, finishedAt])
+}
+
+model DimDate {
+  id    String         @id @db.VarChar(10)
+  day   Int
+  month Int
+  year  Int
+  facts FactMovement[]
+}
+
+model DimProduct {
+  id           String         @id @db.Uuid
+  name         String
+  categoryId   String         @db.Uuid
+  categoryName String
+  facts        FactMovement[]
+
+  @@index([categoryId])
+}
+
+model DimLot {
+  id        String         @id @db.Uuid
+  code      String
+  expiresAt DateTime       @db.Date
+  facts     FactMovement[]
+}
+
+model DimPromotion {
+  id              String         @id
+  discountPercent Int
+  facts           FactMovement[]
+}
+
+model FactMovement {
+  id               String       @id @db.Uuid
+  dateId           String       @db.VarChar(10)
+  date             DimDate      @relation(fields: [dateId], references: [id], onDelete: Restrict)
+  productId        String       @db.Uuid
+  product          DimProduct   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  lotId            String       @db.Uuid
+  lot              DimLot       @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  promotionId      String
+  promotion        DimPromotion @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  type             MovementType
+  quantity         Int
+  revenueCents     BigInt
+  lossCents        BigInt
+  promotionalUnits Int
+
+  @@index([dateId, type])
+  @@index([productId])
+  @@index([lotId])
+  @@index([promotionId])
+}

@@ -1,0 +1,102 @@
+name: supervalidade
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: supervalidade
+      POSTGRES_PASSWORD: supervalidade
+      POSTGRES_DB: supervalidade
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55433}:5432"
+    volumes:
+      - supervalidade_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supervalidade -d supervalidade"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      target: tools
+    environment:
+      DATABASE_URL: postgresql://supervalidade:supervalidade@postgres:5432/supervalidade?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npm", "run", "db:migrate"]
+
+  api:
+    build:
+      context: .
+      target: runtime
+    environment:
+      DATABASE_URL: postgresql://supervalidade:supervalidade@postgres:5432/supervalidade?schema=public
+      HOST: 0.0.0.0
+      PORT: 3333
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    ports:
+      - "127.0.0.1:${API_PORT:-3334}:3333"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    init: true
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3333/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  seed:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    environment:
+      DATABASE_URL: postgresql://supervalidade:supervalidade@postgres:5432/supervalidade?schema=public
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: ["npm", "run", "db:seed"]
+
+  postgres-test:
+    profiles: ["test"]
+    image: postgres:17
+    environment:
+      POSTGRES_USER: supervalidade
+      POSTGRES_PASSWORD: supervalidade
+      POSTGRES_DB: supervalidade_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supervalidade -d supervalidade_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: tools
+    environment:
+      DATABASE_URL: postgresql://supervalidade:supervalidade@postgres-test:5432/supervalidade_test?schema=public
+      TEST_DATABASE_URL: postgresql://supervalidade:supervalidade@postgres-test:5432/supervalidade_test?schema=public
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    command: ["npm", "test"]
+
+volumes:
+  supervalidade_data:
