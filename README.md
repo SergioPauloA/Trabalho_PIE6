@@ -16,4 +16,4 @@ Para iniciar API e banco pelo Docker: na pasta `backend/`, execute `docker compo
 
 Primeira etapa de prototipação: **Sergio Paulo de Andrade**, ideação de telas e design.
 
-Frente da Pessoa 2: base da API, contratos de integração, banco e regras de estoque. Os módulos de promoções e análise estão disponíveis para integração e evolução pelas demais frentes.
+Lucas de Lima Nascimento: base da API, contratos de integração, banco e regras de estoque. Os módulos de promoções e análise estão disponíveis para integração e evolução pelas demais frentes.
