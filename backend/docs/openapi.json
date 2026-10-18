@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "SuperValidade API",
-    "version": "1.0.0",
-    "description": "Sem login. Valores em centavos inteiros; quantidades em unidades. Validade inclusiva no fuso America/Sao_Paulo. ETL manual."
+    "title": "Mercelume API",
+    "version": "2.0.0",
+    "description": "Sem login. Quantidades em toneladas (t), até 3 casas decimais. Custo e preço em centavos por tonelada; totais financeiros arredondados por movimentação. Envios de quantidade exigem quantityUnit: t. Validade inclusiva no fuso America/Sao_Paulo. ETL manual."
   },
   "components": {
     "schemas": {}
@@ -2868,19 +2868,29 @@
                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                   },
                   "initialQuantity": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1000000
+                    "type": "number",
+                    "minimum": 0.001,
+                    "maximum": 1000000,
+                    "multipleOf": 0.001,
+                    "description": "Toneladas (t), até três casas decimais; 0.001 t = 1 kg."
+                  },
+                  "quantityUnit": {
+                    "type": "string",
+                    "enum": [
+                      "t"
+                    ]
                   },
                   "unitCostCents": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 10000000
+                    "maximum": 10000000,
+                    "description": "Centavos de real por tonelada (R$/t)."
                   },
                   "unitPriceCents": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 10000000
+                    "maximum": 10000000,
+                    "description": "Centavos de real por tonelada (R$/t)."
                   }
                 },
                 "required": [
@@ -2888,6 +2898,7 @@
                   "productId",
                   "expiresAt",
                   "initialQuantity",
+                  "quantityUnit",
                   "unitCostCents",
                   "unitPriceCents"
                 ],
@@ -3551,12 +3562,14 @@
                   "unitCostCents": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 10000000
+                    "maximum": 10000000,
+                    "description": "Centavos de real por tonelada (R$/t)."
                   },
                   "unitPriceCents": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 10000000
+                    "maximum": 10000000,
+                    "description": "Centavos de real por tonelada (R$/t)."
                   }
                 },
                 "additionalProperties": false
@@ -3851,9 +3864,17 @@
                 "type": "object",
                 "properties": {
                   "quantity": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1000000
+                    "type": "number",
+                    "minimum": 0.001,
+                    "maximum": 1000000,
+                    "multipleOf": 0.001,
+                    "description": "Toneladas (t), até três casas decimais; 0.001 t = 1 kg."
+                  },
+                  "quantityUnit": {
+                    "type": "string",
+                    "enum": [
+                      "t"
+                    ]
                   },
                   "requestKey": {
                     "type": "string",
@@ -3863,6 +3884,7 @@
                 },
                 "required": [
                   "quantity",
+                  "quantityUnit",
                   "requestKey"
                 ],
                 "additionalProperties": false
@@ -4184,9 +4206,17 @@
                 "type": "object",
                 "properties": {
                   "quantity": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1000000
+                    "type": "number",
+                    "minimum": 0.001,
+                    "maximum": 1000000,
+                    "multipleOf": 0.001,
+                    "description": "Toneladas (t), até três casas decimais; 0.001 t = 1 kg."
+                  },
+                  "quantityUnit": {
+                    "type": "string",
+                    "enum": [
+                      "t"
+                    ]
                   },
                   "requestKey": {
                     "type": "string",
@@ -4201,6 +4231,7 @@
                 },
                 "required": [
                   "quantity",
+                  "quantityUnit",
                   "requestKey",
                   "reason"
                 ],
@@ -5413,19 +5444,19 @@
                     "activeLots": {
                       "type": "number"
                     },
-                    "totalUnits": {
+                    "totalTonnes": {
                       "type": "number"
                     },
                     "expiredLots": {
                       "type": "number"
                     },
-                    "expiredUnits": {
+                    "expiredTonnes": {
                       "type": "number"
                     },
                     "attentionLots": {
                       "type": "number"
                     },
-                    "attentionUnits": {
+                    "attentionTonnes": {
                       "type": "number"
                     },
                     "activePromotions": {
@@ -5436,11 +5467,11 @@
                     "alertDays",
                     "date",
                     "activeLots",
-                    "totalUnits",
+                    "totalTonnes",
                     "expiredLots",
-                    "expiredUnits",
+                    "expiredTonnes",
                     "attentionLots",
-                    "attentionUnits",
+                    "attentionTonnes",
                     "activePromotions"
                   ],
                   "additionalProperties": false
@@ -8397,7 +8428,7 @@
                     "soldQuantity": {
                       "type": "number"
                     },
-                    "promotionalUnits": {
+                    "promotionalQuantity": {
                       "type": "number"
                     },
                     "discardedQuantity": {
@@ -8416,7 +8447,7 @@
                   "required": [
                     "lastEtlAt",
                     "soldQuantity",
-                    "promotionalUnits",
+                    "promotionalQuantity",
                     "discardedQuantity",
                     "revenueCents",
                     "promotionalRevenueCents",
@@ -8753,7 +8784,7 @@
                           "soldQuantity": {
                             "type": "number"
                           },
-                          "promotionalUnits": {
+                          "promotionalQuantity": {
                             "type": "number"
                           },
                           "discardedQuantity": {
@@ -8773,7 +8804,7 @@
                           "key",
                           "label",
                           "soldQuantity",
-                          "promotionalUnits",
+                          "promotionalQuantity",
                           "discardedQuantity",
                           "revenueCents",
                           "promotionalRevenueCents",
@@ -8786,6 +8817,369 @@
                   "required": [
                     "lastEtlAt",
                     "groupBy",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/rollup": {
+      "get": {
+        "summary": "Roll-up dia > mês > ano com subtotais e total geral",
+        "tags": [
+          "OLAP"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "in": "query",
+            "name": "from",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "categoryId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "productId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "lotId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "promotionId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SALE",
+                "DISCARD"
+              ]
+            },
+            "in": "query",
+            "name": "type",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lastEtlAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "level": {
+                            "type": "string",
+                            "enum": [
+                              "day",
+                              "month",
+                              "year",
+                              "total"
+                            ]
+                          },
+                          "year": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "month": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "day": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "soldQuantity": {
+                            "type": "number"
+                          },
+                          "promotionalQuantity": {
+                            "type": "number"
+                          },
+                          "discardedQuantity": {
+                            "type": "number"
+                          },
+                          "revenueCents": {
+                            "type": "number"
+                          },
+                          "promotionalRevenueCents": {
+                            "type": "number"
+                          },
+                          "lossCents": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "level",
+                          "year",
+                          "month",
+                          "day",
+                          "soldQuantity",
+                          "promotionalQuantity",
+                          "discardedQuantity",
+                          "revenueCents",
+                          "promotionalRevenueCents",
+                          "lossCents"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "lastEtlAt",
                     "data"
                   ],
                   "additionalProperties": false

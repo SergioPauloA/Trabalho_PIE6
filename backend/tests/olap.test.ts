@@ -17,6 +17,8 @@ const db = createDb(url);
 const clock = new Date();
 const app = await buildApp({ db, now: () => clock });
 async function call(method: HTTPMethods, path: string, payload?: object) {
+  if (method === "POST" && (path === "/api/lots" || /\/(sales|discards)$/.test(path)))
+    payload = { quantityUnit: "t", ...payload };
   const response = await app.inject({ method, url: path, payload });
   return { status: response.statusCode, body: response.json() };
 }
@@ -95,11 +97,11 @@ test("roll-up dia > mês > ano traz subtotais e total geral, e respeita os filtr
     rows.find((r) => r.level === level && (r.day ?? r.month ?? r.year) === label)!;
   assert.equal(pick("month", "2025-12").soldQuantity, 10);
   assert.equal(pick("month", "2025-12").revenueCents, 10_000);
-  assert.equal(pick("month", "2025-12").promotionalUnits, 0);
+  assert.equal(pick("month", "2025-12").promotionalQuantity, 0);
   const jan = pick("month", "2026-01");
   assert.equal(jan.soldQuantity, 40); // 5 + 20 + 15
   assert.equal(jan.revenueCents, 29_500); // 5.000 + 14.000 + 10.500
-  assert.equal(jan.promotionalUnits, 35);
+  assert.equal(jan.promotionalQuantity, 35);
   assert.equal(jan.promotionalRevenueCents, 24_500);
   assert.equal(jan.discardedQuantity, 4);
   assert.equal(jan.lossCents, 2_000);
@@ -108,12 +110,12 @@ test("roll-up dia > mês > ano traz subtotais e total geral, e respeita os filtr
   // O total geral é a soma das partes e coincide com o resumo.
   const total = pick("total", null);
   assert.equal(total.soldQuantity, 50);
-  assert.equal(total.promotionalUnits, 35);
+  assert.equal(total.promotionalQuantity, 35);
   assert.equal(total.promotionalRevenueCents, 24_500);
   assert.equal(total.lossCents, 2_000);
   const summary = await call("GET", `/api/analytics/summary?lotId=${lotId}`);
   for (const field of [
-    "soldQuantity", "promotionalUnits", "discardedQuantity",
+    "soldQuantity", "promotionalQuantity", "discardedQuantity",
     "revenueCents", "promotionalRevenueCents", "lossCents",
   ])
     assert.equal(total[field], summary.body[field], field);

@@ -5,7 +5,9 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 ## Convenções
 
 - IDs são UUIDs. Campos terminados em `Cents` são **centavos inteiros**: `1000 = R$ 10,00`.
-- Quantidades são unidades inteiras positivas, até 1.000.000 por operação; custos/preços unitários até 10.000.000 centavos.
+- Quantidades e saldos são **toneladas (t)**: mínimo `0.001` (1 kg), máximo 1.000.000 t por entrada/operação, até três casas decimais. Exemplo: `0.250` = 250 kg. A API recebe números JSON com ponto decimal e devolve números, não strings.
+- `unitCostCents` e `unitPriceCents` são **centavos por tonelada**, até 10.000.000 centavos/t. Receita/perda multiplicam toneladas pelo preço/custo e arredondam uma vez por movimentação ao centavo mais próximo, com meio centavo para cima; ETL e resultados usam a mesma regra.
+- Criação de lote, venda e descarte exigem `quantityUnit: "t"`. Clientes antigos que enviem unidades sem indicar toneladas recebem HTTP 400. Os lotes continuam identificando entrada, validade e rastreabilidade. O protótipo HTML histórico não atende ao contrato v2.
 - `expiresAt` de entrada e filtros `from`/`to`: `YYYY-MM-DD`. Datas de criação/movimentação: ISO 8601 UTC. A validade e os dias de análise seguem `America/Sao_Paulo`; o dia do vencimento ainda permite venda.
 - Listas operacionais: `page=1&pageSize=20`, com máximo de 100 itens por página e `page` até 1.000.000. Resposta: `{ data: [...], pagination: { page, pageSize, total, totalPages } }`.
 - Erros: `{ error: { code, message, details? } }`. HTTP `400` entrada inválida; `404` inexistente; `409` conflito de negócio/concorrência; `422` referência/preço inválido; `500` falha interna; `503` banco indisponível no health.
@@ -29,8 +31,8 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 | GET | `/api/lots/:id` | Lote, saldo, quantidades vendida/descartada e situação |
 | POST | `/api/lots` | Criar lote conforme exemplo abaixo |
 | PATCH | `/api/lots/:id` | Corrigir `code`, `expiresAt`, `unitCostCents`, `unitPriceCents` antes de haver histórico |
-| POST | `/api/lots/:id/sales` | Venda: `{ quantity, requestKey }` |
-| POST | `/api/lots/:id/discards` | Descarte: `{ quantity, requestKey, reason }` |
+| POST | `/api/lots/:id/sales` | Venda: `{ quantity, quantityUnit: "t", requestKey }` |
+| POST | `/api/lots/:id/discards` | Descarte: `{ quantity, quantityUnit: "t", requestKey, reason }` |
 | GET | `/api/movements` | Histórico; filtros `lotId`, `promotionId`, `type`, `from`, `to` |
 | POST | `/api/promotions` | Abrir: `{ lotId, discountPercent }`; desconto inteiro de 1 a 99 |
 | GET | `/api/promotions` | Promoções; filtros `lotId`, `status=ACTIVE/CLOSED` |
@@ -39,7 +41,7 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 | GET | `/api/promotions/:id/results` | Resultado da promoção e saldo atual |
 | GET | `/api/settings` | Prazo de alerta vigente |
 | PUT | `/api/settings` | Alterar: `{ alertDays: 10 }`; entre 0 e 365 |
-| GET | `/api/dashboard/stock` | Lotes/unidades totais, vencidos, em atenção e promoções ativas |
+| GET | `/api/dashboard/stock` | Lotes/toneladas totais, vencidos, em atenção e promoções ativas |
 | POST | `/api/etl/runs` | Executar ETL síncrono; sem corpo; retorna 201 após conclusão |
 | GET | `/api/etl/runs` | Histórico paginado das cargas |
 | GET | `/api/etl/runs/:id` | Situação, contagem e erro de uma carga |
@@ -65,9 +67,10 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
   "code": "LT-001",
   "productId": "UUID_DO_PRODUTO",
   "expiresAt": "2026-12-31",
-  "initialQuantity": 100,
-  "unitCostCents": 500,
-  "unitPriceCents": 1000
+  "initialQuantity": 1,
+  "quantityUnit": "t",
+  "unitCostCents": 50000,
+  "unitPriceCents": 100000
 }
 ```
 
@@ -77,23 +80,23 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 { "lotId": "UUID_DO_LOTE", "discountPercent": 30 }
 ```
 
-O retorno traz `unitPriceCents: 700`. O arredondamento é feito para o centavo mais próximo.
+O retorno traz `unitPriceCents: 70000 (R$ 700,00/t)`. O arredondamento é feito para o centavo mais próximo.
 
 5. Venda em `POST /api/lots/UUID_DO_LOTE/sales`:
 
 ```json
-{ "quantity": 60, "requestKey": "11111111-1111-4111-8111-111111111111" }
+{ "quantity": 0.6, "quantityUnit": "t", "requestKey": "11111111-1111-4111-8111-111111111111" }
 ```
 
 6. Descarte em `POST /api/lots/UUID_DO_LOTE/discards`:
 
 ```json
-{ "quantity": 10, "requestKey": "22222222-2222-4222-8222-222222222222", "reason": "Embalagem avariada" }
+{ "quantity": 0.1, "quantityUnit": "t", "requestKey": "22222222-2222-4222-8222-222222222222", "reason": "Embalagem avariada" }
 ```
 
 Cada operação retorna `{ movement, balance, replayed }`. **Gere `requestKey` com `crypto.randomUUID()` uma vez por ação** e reutilize essa chave em tentativas da mesma ação. Gere outra para uma nova venda/descarte. Repetir a chave e o conteúdo devolve a movimentação existente; usar a mesma chave com outros dados retorna `409`. O `balance` retornado é o saldo atual, inclusive em repetição.
 
-7. Consulte `/api/promotions/UUID_DA_PROMOCAO/results`: 60 vendidas, 10 descartadas, saldo 30, receita `42000`, perda `5000` e `sellThroughPercent: 60`.
+7. Consulte `/api/promotions/UUID_DA_PROMOCAO/results`: 0,600 t vendidas, 0,100 t descartadas, saldo 0,300 t, receita `42000`, perda `5000` e `sellThroughPercent: 60`.
 8. Encerre em `POST /api/promotions/UUID_DA_PROMOCAO/close`. O lote permanece com saldo. Vendas posteriores usam o preço normal ou uma nova promoção.
 9. Execute `POST /api/etl/runs` e consulte `/api/analytics/summary?lotId=UUID_DO_LOTE`.
 
@@ -101,7 +104,7 @@ No pós-promoção, `remainingFromPromotion` representa a quantidade que sobrou 
 
 ## Painel e OLAP
 
-`/api/dashboard/stock` retorna `date`, `alertDays`, `activeLots`, `totalUnits`, `expiredLots`, `expiredUnits`, `attentionLots`, `attentionUnits`, `activePromotions`. Os lotes com saldo zero não entram nas contagens de estoque.
+`/api/dashboard/stock` retorna `date`, `alertDays`, `activeLots`, `totalTonnes`, `expiredLots`, `expiredTonnes`, `attentionLots`, `attentionTonnes`, `activePromotions`. Os campos terminados em `Tonnes` são pesos em toneladas; os campos `Lots` continuam contagens de lotes para rastreabilidade. Os lotes com saldo zero não entram nas contagens de estoque.
 
 Filtros analíticos: `from`, `to` (inclusive), `categoryId`, `productId`, `lotId`, `promotionId`, `type`. Podem ser combinados. Para agrupamentos, acrescente `groupBy=day|month|category|product|lot` (padrão `month`).
 
@@ -113,7 +116,7 @@ Filtros analíticos: `from`, `to` (inclusive), `categoryId`, `productId`, `lotId
 /api/analytics/rollup?from=2026-09-01&to=2026-10-31
 ```
 
-Indicadores retornados: `soldQuantity`, `promotionalUnits`, `discardedQuantity`, `revenueCents` (todas as vendas), `promotionalRevenueCents` (só promoções), `lossCents`. Receita não é lucro. `promotionalUnits` é a métrica operacional de produtos “salvos”, sem afirmar causalidade econômica.
+Todas as quantidades abaixo são toneladas. Indicadores retornados: `soldQuantity`, `promotionalQuantity`, `discardedQuantity`, `revenueCents` (todas as vendas), `promotionalRevenueCents` (só promoções), `lossCents`. Receita não é lucro. `promotionalQuantity` mede toneladas vendidas com promoção, sem afirmar causalidade econômica.
 
 O resumo retorna os indicadores e `lastEtlAt`. O agrupamento retorna `{ lastEtlAt, groupBy, data: [{ key, label, ...indicadores }] }`. Grupos sem movimentações não aparecem; o frontend pode preencher dias/meses vazios com zero. Os endpoints analíticos não usam a paginação operacional.
 
@@ -139,7 +142,7 @@ async function registrarVenda(lotId: string, quantity: number, requestKey: strin
 
 // Crie antes da tentativa e preserve se houver falha de rede:
 const requestKey = crypto.randomUUID();
-await registrarVenda(lotId, 60, requestKey);
+await registrarVenda(lotId, 0.6, requestKey);
 ```
 
 Para chamadas de leitura, use `fetch` com TanStack Query. Para outros endereços/portas do React, inclua a origem em `CORS_ORIGINS` no `.env` do backend e reinicie a API.

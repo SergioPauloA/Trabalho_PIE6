@@ -10,6 +10,35 @@ export class AppError extends Error {
   }
 }
 
+/** Exact mass arithmetic: one tonne has 1,000 kg; never round an input mass. */
+export function validateQuantity(value: number): void {
+  const quantity = new Prisma.Decimal(value);
+  if (!quantity.isFinite() || quantity.lt(0.001) || quantity.gt(1_000_000) || quantity.decimalPlaces() > 3)
+    throw new AppError(400, "INVALID_QUANTITY", "Informe toneladas entre 0,001 e 1.000.000, com até três casas decimais.");
+}
+
+export function safeQuantity(value: Prisma.Decimal): number {
+  if (!value.isFinite() || !Number.isSafeInteger(value.mul(1000).toNumber()))
+    throw new AppError(422, "TOTAL_OVERFLOW", "Quantidade excede o limite numérico; reduza o período consultado.");
+  return value.toNumber();
+}
+
+/** Round each movement once to the nearest cent; half a cent rounds up. */
+export function movementValueCents(quantity: Prisma.Decimal, centsPerTonne: number): bigint {
+  return BigInt(quantity.mul(centsPerTonne).toDecimalPlaces(0, Prisma.Decimal.ROUND_HALF_UP).toFixed(0));
+}
+
+/** Inspect Decimal before toJSON would convert it into a string. */
+export function publicValues(value: unknown): unknown {
+  if (value instanceof Prisma.Decimal) return safeQuantity(value);
+  if (typeof value === "bigint") return safeNumber(value);
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(publicValues);
+  if (value && typeof value === "object")
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, publicValues(item)]));
+  return value;
+}
+
 const businessDateFormatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -27,14 +56,14 @@ export function dayDifference(expiresAt: Date, now = new Date()): number {
     (Date.parse(dateOnly(expiresAt)) - Date.parse(localDate(now))) / 86_400_000,
   );
 }
-export function lotView<T extends { expiresAt: Date; balance: number }>(
+export function lotView<T extends { expiresAt: Date; balance: Prisma.Decimal }>(
   lot: T,
   alertDays: number,
   now = new Date(),
 ) {
   const daysUntilExpiry = dayDifference(lot.expiresAt, now);
   const status =
-    lot.balance === 0
+    lot.balance.isZero()
       ? "EMPTY"
       : daysUntilExpiry < 0
         ? "EXPIRED"
@@ -85,6 +114,7 @@ export async function recordMovement(
   input: MovementInput,
   now = new Date(),
 ) {
+  validateQuantity(input.quantity);
   return db.$transaction(async (tx) => {
     const lot = await lockLot(tx, lotId);
     const previous = await tx.movement.findUnique({
@@ -94,7 +124,7 @@ export async function recordMovement(
       if (
         previous.lotId !== lotId ||
         previous.type !== type ||
-        previous.quantity !== input.quantity ||
+        !previous.quantity.equals(input.quantity) ||
         previous.reason !== (input.reason ?? null)
       ) {
         throw new AppError(
@@ -105,7 +135,7 @@ export async function recordMovement(
       }
       return { movement: previous, balance: lot.balance, replayed: true };
     }
-    if (lot.balance < input.quantity)
+    if (lot.balance.lt(input.quantity))
       throw new AppError(
         409,
         "INSUFFICIENT_STOCK",
@@ -164,7 +194,7 @@ export async function createPromotion(
         "EXPIRED_LOT",
         "Lote vencido não pode entrar em promoção.",
       );
-    if (lot.balance === 0)
+    if (lot.balance.isZero())
       throw new AppError(409, "EMPTY_LOT", "Lote sem saldo.");
     if (!lot.product.active)
       throw new AppError(409, "INACTIVE_PRODUCT", "Produto inativo.");
@@ -228,24 +258,24 @@ export async function promotionResult(db: PrismaClient, id: string) {
       });
       const soldQuantity = movements
         .filter((m) => m.type === "SALE")
-        .reduce((n, m) => n + m.quantity, 0);
+        .reduce((n, m) => n.plus(m.quantity), new Prisma.Decimal(0));
       const discardedQuantity = movements
         .filter((m) => m.type === "DISCARD")
-        .reduce((n, m) => n + m.quantity, 0);
+        .reduce((n, m) => n.plus(m.quantity), new Prisma.Decimal(0));
       return {
         promotion,
         soldQuantity,
         discardedQuantity,
         remainingFromPromotion:
-          promotion.initialQuantity - soldQuantity - discardedQuantity,
+          promotion.initialQuantity.minus(soldQuantity).minus(discardedQuantity),
         currentLotBalance: promotion.lot.balance,
         sellThroughPercent:
-          Math.round((soldQuantity / promotion.initialQuantity) * 10000) / 100,
+          soldQuantity.div(promotion.initialQuantity).mul(100).toDecimalPlaces(2).toNumber(),
         revenueCents: safeNumber(
           movements
             .filter((m) => m.type === "SALE")
             .reduce(
-              (n, m) => n + BigInt(m.quantity) * BigInt(m.unitPriceCents),
+              (n, m) => n + movementValueCents(m.quantity, m.unitPriceCents),
               0n,
             ),
         ),
@@ -253,7 +283,7 @@ export async function promotionResult(db: PrismaClient, id: string) {
           movements
             .filter((m) => m.type === "DISCARD")
             .reduce(
-              (n, m) => n + BigInt(m.quantity) * BigInt(m.unitCostCents),
+              (n, m) => n + movementValueCents(m.quantity, m.unitCostCents),
               0n,
             ),
         ),

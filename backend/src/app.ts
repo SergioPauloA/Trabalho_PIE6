@@ -5,7 +5,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import Fastify from 'fastify';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { AppError, safeNumber } from './domain.js';
+import { AppError, publicValues } from './domain.js';
 import * as s from './schemas.js';
 import { catalogRoutes } from './routes/catalog.js';
 import { inventoryRoutes } from './routes/inventory.js';
@@ -36,10 +36,10 @@ export async function buildApp(options: { db: PrismaClient; logger?: boolean; co
   await app.register(swagger, {
     openapi: {
       info: {
-        title: "SuperValidade API",
-        version: "1.0.0",
+        title: "Mercelume API",
+        version: "2.0.0",
         description:
-          "Sem login. Valores em centavos inteiros; quantidades em unidades. Validade inclusiva no fuso America/Sao_Paulo. ETL manual.",
+          "Sem login. Quantidades em toneladas (t), até 3 casas decimais. Custo e preço em centavos por tonelada; totais financeiros arredondados por movimentação. Envios de quantidade exigem quantityUnit: t. Validade inclusiva no fuso America/Sao_Paulo. ETL manual.",
       },
       servers: [{ url: "/" }],
     },
@@ -49,11 +49,7 @@ export async function buildApp(options: { db: PrismaClient; logger?: boolean; co
   await app.register(swaggerUi, { routePrefix: "/docs" });
 
   app.addHook("preSerialization", async (_request, _reply, payload) =>
-    JSON.parse(
-      JSON.stringify(payload, (_key, value) =>
-        typeof value === "bigint" ? safeNumber(value) : value,
-      ),
-    ),
+    publicValues(payload),
   );
 
   app.setErrorHandler((err, request, reply) => {

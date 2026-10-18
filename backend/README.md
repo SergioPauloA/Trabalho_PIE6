@@ -1,4 +1,4 @@
-# SuperValidade API
+# Mercelume API
 
 API sem login em **Fastify + TypeScript**, com **Prisma ORM 7** e **PostgreSQL 17**. Validações em Zod, Swagger interativo e testes com banco real.
 
@@ -88,11 +88,12 @@ O seed cria duas categorias, produtos, lotes, movimentações em dois meses, pro
 | `npm run db:migrate` | Aplicar migrações versionadas |
 | `npm run db:seed` | Criar os dados de demonstração e carregar o modelo analítico |
 | `npm run db:seed:olap` | Acrescentar 8 lotes em 3 categorias, distribuídos em 3 meses, e executar o ETL |
+| `npm run db:seed:catalog` | Carregar 24 produtos comuns e estoque demonstrativo em toneladas; aceita `-- --catalog-only` |
 | `npm run etl` | Executar manualmente uma carga ETL |
 | `npm run docs:export` | Atualizar `docs/openapi.json` a partir das rotas |
 | `npm run db:studio` | Inspecionar os registros no Prisma Studio |
 
-`npm test` exige que o nome do banco de `TEST_DATABASE_URL` termine em `_test`. Os testes criam registros exclusivos e não apagam tabelas operacionais. Há testes de concorrência, idempotência, regras de validade, persistência, relatórios, rollback de ETL, Swagger e CORS.
+`npm test` exige que o nome do banco de `TEST_DATABASE_URL` termine em `_test`. Os testes aplicam as migrações (incluindo a limpeza inicial da transição para toneladas) apenas no banco dedicado e criam registros exclusivos. Há testes de precisão decimal, arredondamento por movimentação, contrato de unidade, concorrência, idempotência, regras de validade, persistência, relatórios, rollback de ETL, Swagger e CORS.
 
 ## Organização
 
@@ -139,7 +140,7 @@ As dimensões são **tipo 1**: a próxima carga reflete nomes/categorias atuais.
 
 O painel de estoque consulta a operação imediatamente. As análises de vendas e perdas refletem a última carga concluída e retornam `lastEtlAt`. Antes da primeira carga, esse campo é `null` e os totais são zero. Há agrupamentos dia/mês/categoria/produto/lote e filtros combinados para detalhamento. O endpoint `/api/analytics/rollup` devolve dia > mês > ano com subtotais e total geral em uma única consulta (`GROUP BY ROLLUP`).
 
-Escopo atual: vendas manuais, um estabelecimento, unidades inteiras, ETL manual e API local. Importação CSV, integração com caixa, envio de e-mail e agendamento ficam para evolução. O backend está pronto para integração; não há frontend React implementado nesta entrega.
+Escopo atual: vendas manuais, um estabelecimento, toneladas com três casas decimais, ETL manual e API local. Importação CSV, integração com caixa, envio de e-mail e agendamento ficam para evolução. O frontend React integrado está em `../frontend`; veja seu README para executar pelo Vite ou pelo perfil `web` do Docker Compose.
 
 ## Dependências e organização
 
@@ -150,3 +151,11 @@ Escopo atual: vendas manuais, um estabelecimento, unidades inteiras, ETL manual 
 - `tests/`, `scripts/`, `docs/` e `prisma/migrations/` são usados. `node_modules/` é necessário à execução local. `.local/` contém o banco nativo e está ignorado pelo Git; removê-lo apagaria seus dados locais.
 
 Esta estrutura atende ao MVP acadêmico. O ETL ainda faz carga completa em memória e as dimensões são tipo 1; volumes grandes e requisitos de histórico de classificação pedem uma evolução específica desse módulo.
+
+## Controle em toneladas e migração
+
+Quantidades, saldos, vendas, descartes e análises usam toneladas com até três casas decimais (`0,250 t = 250 kg`). Preços e custos são por tonelada (R$/t). Lotes são mantidos para separar entradas e validades.
+
+A migração `202610180001_tonnes` limpa, uma única vez, os antigos dados de teste de estoque/lotes, promoções, movimentações, cargas ETL e dimensões/fatos analíticos. Essa limpeza foi autorizada porque as unidades antigas não têm peso cadastrado. Produtos, categorias e configurações são preservados. Não há conversão automática de unidades para toneladas. Novas execuções do Compose preservam os registros em toneladas.
+
+O Compose aplica a migração antes de iniciar a API. Para começar com o estoque vazio, não execute os seeds opcionais. O contrato da API passa a exigir `quantityUnit: "t"` ao criar lotes, vender ou descartar.

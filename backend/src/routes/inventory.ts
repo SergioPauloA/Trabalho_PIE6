@@ -136,10 +136,11 @@ export const inventoryRoutes: FastifyPluginAsyncZod<RouteOptions> = async (app, 
       );
       if (!product.active)
         throw new AppError(409, "INACTIVE_PRODUCT", "Produto inativo.");
+      const { quantityUnit: _unit, ...data } = req.body;
       return reply.status(201).send(
         await db.lot.create({
           data: {
-            ...req.body,
+            ...data,
             expiresAt: new Date(req.body.expiresAt),
             balance: req.body.initialQuantity,
           },
@@ -290,11 +291,11 @@ export const inventoryRoutes: FastifyPluginAsyncZod<RouteOptions> = async (app, 
             alertDays: z.number(),
             date: s.date,
             activeLots: z.number(),
-            totalUnits: z.number(),
+            totalTonnes: z.number(),
             expiredLots: z.number(),
-            expiredUnits: z.number(),
+            expiredTonnes: z.number(),
             attentionLots: z.number(),
-            attentionUnits: z.number(),
+            attentionTonnes: z.number(),
             activePromotions: z.number(),
           }),
         ),
@@ -330,11 +331,11 @@ export const inventoryRoutes: FastifyPluginAsyncZod<RouteOptions> = async (app, 
             date: localDate(now()),
             alertDays,
             activeLots: all._count,
-            totalUnits: all._sum.balance ?? 0,
+            totalTonnes: all._sum.balance ?? 0,
             expiredLots: expired._count,
-            expiredUnits: expired._sum.balance ?? 0,
+            expiredTonnes: expired._sum.balance ?? 0,
             attentionLots: attention._count,
-            attentionUnits: attention._sum.balance ?? 0,
+            attentionTonnes: attention._sum.balance ?? 0,
             activePromotions: await tx.promotion.count({
               where: { status: "ACTIVE" },
             }),

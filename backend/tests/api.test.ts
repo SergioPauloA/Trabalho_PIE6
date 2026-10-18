@@ -20,6 +20,8 @@ const dateOffset = (days: number) =>
   new Date(Date.parse(today) + days * 86400000).toISOString().slice(0, 10);
 const app = await buildApp({ db, now: () => clock });
 async function call(method: HTTPMethods, path: string, payload?: object) {
+  if (method === "POST" && (path === "/api/lots" || /\/(sales|discards)$/.test(path)))
+    payload = { quantityUnit: "t", ...payload };
   const response = await app.inject({ method, url: path, payload });
   return {
     status: response.statusCode,
@@ -250,7 +252,7 @@ test("validação rejeita dados inválidos, preços enviados na venda e IDs inv�
   const { lot, product } = await fixture();
   for (const payload of [
     { quantity: -1, requestKey: randomUUID() },
-    { quantity: 1.5, requestKey: randomUUID() },
+    { quantity: 1.0001, requestKey: randomUUID() },
     { quantity: 0, requestKey: randomUUID() },
     { quantity: 1 },
     { quantity: 1, requestKey: randomUUID(), unitPriceCents: 1 },
@@ -385,7 +387,7 @@ test("ETL atualiza análise, é idempotente e permite filtros/drill-down/roll-up
   assert.equal(first.body.revenueCents, 42000);
   assert.equal(first.body.promotionalRevenueCents, 42000);
   assert.equal(first.body.lossCents, 5000);
-  assert.equal(first.body.promotionalUnits, 60);
+  assert.equal(first.body.promotionalQuantity, 60);
   assert.ok(first.body.lastEtlAt);
   await call("POST", "/api/etl/runs");
   const repeated = await call("GET", path);

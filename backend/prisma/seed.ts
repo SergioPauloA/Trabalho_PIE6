@@ -40,10 +40,10 @@ try {
           expiresAt: new Date(
             Date.parse(localDate(new Date())) + 90 * 86_400_000,
           ),
-          initialQuantity: 100,
-          balance: 100,
-          unitCostCents: 500,
-          unitPriceCents: 1000,
+          initialQuantity: 1,
+          balance: 1,
+          unitCostCents: 50000,
+          unitPriceCents: 100000,
         },
       });
       const promotion = await createPromotion(db, lot.id, 30, date);
@@ -51,7 +51,7 @@ try {
         db,
         lot.id,
         "SALE",
-        { quantity: index === 0 ? 60 : 40, requestKey: randomUUID() },
+        { quantity: index === 0 ? 0.6 : 0.4, requestKey: randomUUID() },
         date,
       );
       await recordMovement(
@@ -59,7 +59,7 @@ try {
         lot.id,
         "DISCARD",
         {
-          quantity: 10,
+          quantity: 0.1,
           reason: "Avaria na embalagem (demonstração)",
           requestKey: randomUUID(),
         },
@@ -81,10 +81,10 @@ try {
         code,
         productId: product.id,
         expiresAt: new Date(Date.parse(localDate()) + days * 86_400_000),
-        initialQuantity: 50,
-        balance: 50,
-        unitCostCents: 400,
-        unitPriceCents: 800,
+        initialQuantity: 0.5,
+        balance: 0.5,
+        unitCostCents: 40000,
+        unitPriceCents: 80000,
       },
       update: {},
     });

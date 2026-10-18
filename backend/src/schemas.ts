@@ -7,8 +7,9 @@ export const pagination = z.object({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
-export const money = z.number().int().min(0).max(10_000_000);
-export const quantity = z.number().int().min(1).max(1_000_000);
+export const money = z.number().int().min(0).max(10_000_000).describe("Centavos de real por tonelada (R$/t).");
+export const quantity = z.number().min(0.001).max(1_000_000).multipleOf(0.001).describe("Toneladas (t), até três casas decimais; 0.001 t = 1 kg.");
+export const quantityUnit = z.literal("t");
 export const categoryBody = z
   .object({ name: z.string().trim().min(1).max(100) })
   .strict();
@@ -32,15 +33,16 @@ export const lotBody = z
     productId: id,
     expiresAt: date,
     initialQuantity: quantity,
+    quantityUnit,
     unitCostCents: money,
     unitPriceCents: money.min(1),
   })
   .strict();
 export const lotPatch = lotBody
-  .omit({ productId: true, initialQuantity: true })
+  .omit({ productId: true, initialQuantity: true, quantityUnit: true })
   .partial()
   .refine((v) => Object.keys(v).length > 0, "Informe ao menos um campo.");
-export const saleBody = z.object({ quantity, requestKey: id }).strict();
+export const saleBody = z.object({ quantity, quantityUnit, requestKey: id }).strict();
 export const discardBody = saleBody
   .extend({ reason: z.string().trim().min(3).max(300) })
   .strict();
@@ -184,7 +186,7 @@ export const error = z.object({
 });
 export const metricFields = {
   soldQuantity: z.number(),
-  promotionalUnits: z.number(),
+  promotionalQuantity: z.number(),
   discardedQuantity: z.number(),
   revenueCents: z.number(),
   promotionalRevenueCents: z.number(),

@@ -1,0 +1,30 @@
+{
+  "description": "Produtos comuns do comércio brasileiro, sem vínculo com marcas. Estoques, preços e prazos são exemplos fictícios para demonstração; não são cotações nem validades de fabricantes. SKUs internos; nenhum código de barras foi inventado.",
+  "quantityUnit": "t",
+  "products": [
+    { "sku": "MER-CAT-001", "name": "Arroz branco tipo 1", "category": "Grãos e cereais", "initialQuantity": 0.500, "unitCostCents": 420000, "unitPriceCents": 650000, "daysUntilExpiry": 180 },
+    { "sku": "MER-CAT-002", "name": "Arroz integral", "category": "Grãos e cereais", "initialQuantity": 0.200, "unitCostCents": 550000, "unitPriceCents": 850000, "daysUntilExpiry": 150 },
+    { "sku": "MER-CAT-003", "name": "Feijão carioca", "category": "Grãos e cereais", "initialQuantity": 0.350, "unitCostCents": 620000, "unitPriceCents": 950000, "daysUntilExpiry": 120 },
+    { "sku": "MER-CAT-004", "name": "Feijão preto", "category": "Grãos e cereais", "initialQuantity": 0.250, "unitCostCents": 580000, "unitPriceCents": 890000, "daysUntilExpiry": 120 },
+    { "sku": "MER-CAT-005", "name": "Farinha de trigo", "category": "Farinhas e ingredientes", "initialQuantity": 0.250, "unitCostCents": 280000, "unitPriceCents": 450000, "daysUntilExpiry": 90 },
+    { "sku": "MER-CAT-006", "name": "Fubá de milho", "category": "Farinhas e ingredientes", "initialQuantity": 0.150, "unitCostCents": 220000, "unitPriceCents": 390000, "daysUntilExpiry": 120 },
+    { "sku": "MER-CAT-007", "name": "Açúcar cristal", "category": "Farinhas e ingredientes", "initialQuantity": 0.300, "unitCostCents": 290000, "unitPriceCents": 450000, "daysUntilExpiry": 240 },
+    { "sku": "MER-CAT-008", "name": "Sal refinado", "category": "Farinhas e ingredientes", "initialQuantity": 0.100, "unitCostCents": 120000, "unitPriceCents": 250000, "daysUntilExpiry": 300 },
+    { "sku": "MER-CAT-009", "name": "Batata inglesa", "category": "Hortaliças", "initialQuantity": 0.200, "unitCostCents": 300000, "unitPriceCents": 590000, "daysUntilExpiry": 14 },
+    { "sku": "MER-CAT-010", "name": "Cebola", "category": "Hortaliças", "initialQuantity": 0.150, "unitCostCents": 250000, "unitPriceCents": 490000, "daysUntilExpiry": 18 },
+    { "sku": "MER-CAT-011", "name": "Cenoura", "category": "Hortaliças", "initialQuantity": 0.120, "unitCostCents": 280000, "unitPriceCents": 550000, "daysUntilExpiry": 9 },
+    { "sku": "MER-CAT-012", "name": "Tomate italiano", "category": "Hortaliças", "initialQuantity": 0.180, "unitCostCents": 450000, "unitPriceCents": 790000, "daysUntilExpiry": 5 },
+    { "sku": "MER-CAT-013", "name": "Banana prata", "category": "Frutas", "initialQuantity": 0.180, "unitCostCents": 350000, "unitPriceCents": 650000, "daysUntilExpiry": 4 },
+    { "sku": "MER-CAT-014", "name": "Maçã gala", "category": "Frutas", "initialQuantity": 0.100, "unitCostCents": 650000, "unitPriceCents": 1090000, "daysUntilExpiry": 12 },
+    { "sku": "MER-CAT-015", "name": "Laranja pera", "category": "Frutas", "initialQuantity": 0.250, "unitCostCents": 230000, "unitPriceCents": 450000, "daysUntilExpiry": 10 },
+    { "sku": "MER-CAT-016", "name": "Mamão formosa", "category": "Frutas", "initialQuantity": 0.080, "unitCostCents": 380000, "unitPriceCents": 690000, "daysUntilExpiry": 3 },
+    { "sku": "MER-CAT-017", "name": "Queijo mussarela", "category": "Laticínios", "initialQuantity": 0.075, "unitCostCents": 2800000, "unitPriceCents": 3990000, "daysUntilExpiry": 20 },
+    { "sku": "MER-CAT-018", "name": "Queijo prato", "category": "Laticínios", "initialQuantity": 0.050, "unitCostCents": 3200000, "unitPriceCents": 4590000, "daysUntilExpiry": 25 },
+    { "sku": "MER-CAT-019", "name": "Queijo minas frescal", "category": "Laticínios", "initialQuantity": 0.040, "unitCostCents": 2200000, "unitPriceCents": 3290000, "daysUntilExpiry": 7 },
+    { "sku": "MER-CAT-020", "name": "Manteiga sem sal", "category": "Laticínios", "initialQuantity": 0.030, "unitCostCents": 3500000, "unitPriceCents": 4990000, "daysUntilExpiry": 30 },
+    { "sku": "MER-CAT-021", "name": "Peito de frango", "category": "Carnes e aves", "initialQuantity": 0.150, "unitCostCents": 1400000, "unitPriceCents": 2190000, "daysUntilExpiry": 5 },
+    { "sku": "MER-CAT-022", "name": "Coxa e sobrecoxa de frango", "category": "Carnes e aves", "initialQuantity": 0.120, "unitCostCents": 900000, "unitPriceCents": 1490000, "daysUntilExpiry": 6 },
+    { "sku": "MER-CAT-023", "name": "Patinho bovino", "category": "Carnes e aves", "initialQuantity": 0.080, "unitCostCents": 2900000, "unitPriceCents": 4290000, "daysUntilExpiry": 8 },
+    { "sku": "MER-CAT-024", "name": "Lombo suíno", "category": "Carnes e aves", "initialQuantity": 0.090, "unitCostCents": 1600000, "unitPriceCents": 2490000, "daysUntilExpiry": 9 }
+  ]
+}

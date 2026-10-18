@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { AppError, localDate } from "../domain.js";
+import { AppError, localDate, movementValueCents } from "../domain.js";
 
 /** Carga completa e atômica para o volume acadêmico. Dimensões tipo 1. */
 export async function runEtl(db: PrismaClient) {
@@ -31,7 +31,7 @@ export async function runEtl(db: PrismaClient) {
           const lot = byLot.get(m.lotId);
           if (
             !lot ||
-            m.quantity < 1 ||
+            m.quantity.lte(0) ||
             (m.promotionId && byPromotion.get(m.promotionId)?.lotId !== m.lotId)
           ) {
             throw new AppError(
@@ -50,13 +50,13 @@ export async function runEtl(db: PrismaClient) {
             quantity: m.quantity,
             revenueCents:
               m.type === "SALE"
-                ? BigInt(m.quantity) * BigInt(m.unitPriceCents)
+                ? movementValueCents(m.quantity, m.unitPriceCents)
                 : 0n,
             lossCents:
               m.type === "DISCARD"
-                ? BigInt(m.quantity) * BigInt(m.unitCostCents)
+                ? movementValueCents(m.quantity, m.unitCostCents)
                 : 0n,
-            promotionalUnits:
+            promotionalQuantity:
               m.type === "SALE" && m.promotionId ? m.quantity : 0,
           };
         });

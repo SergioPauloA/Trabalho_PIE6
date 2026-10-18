@@ -1,11 +1,11 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { safeNumber } from "./domain.js";
+import { safeNumber, safeQuantity } from "./domain.js";
 import type { AnalyticQuery, RollupQuery } from "./schemas.js";
 
 const measures = Prisma.sql`
-  COALESCE(SUM(CASE WHEN f.type = 'SALE' THEN f.quantity ELSE 0 END), 0)::bigint AS "soldQuantity",
-  COALESCE(SUM(f."promotionalUnits"), 0)::bigint AS "promotionalUnits",
-  COALESCE(SUM(CASE WHEN f.type = 'DISCARD' THEN f.quantity ELSE 0 END), 0)::bigint AS "discardedQuantity",
+  COALESCE(SUM(CASE WHEN f.type = 'SALE' THEN f.quantity ELSE 0 END), 0) AS "soldQuantity",
+  COALESCE(SUM(f."promotionalQuantity"), 0) AS "promotionalQuantity",
+  COALESCE(SUM(CASE WHEN f.type = 'DISCARD' THEN f.quantity ELSE 0 END), 0) AS "discardedQuantity",
   COALESCE(SUM(f."revenueCents"), 0)::bigint AS "revenueCents",
   COALESCE(SUM(CASE WHEN f."promotionId" <> 'none' THEN f."revenueCents" ELSE 0 END), 0)::bigint AS "promotionalRevenueCents",
   COALESCE(SUM(f."lossCents"), 0)::bigint AS "lossCents"`;
@@ -55,7 +55,7 @@ export async function queryAnalytics(
         orderBy: { finishedAt: "desc" },
       });
       const rows = await tx.$queryRaw<
-        Record<string, bigint | string>[]
+        Record<string, bigint | Prisma.Decimal | string>[]
       >(Prisma.sql`
       SELECT ${grouped ? Prisma.sql`${group.key} AS key, ${group.label} AS label,` : Prisma.empty}
       ${measures}
@@ -85,9 +85,9 @@ export async function queryAnalytics(
   );
 }
 
-type RollupRaw = Record<string, bigint | number | string | null>;
+type RollupRaw = Record<string, bigint | number | Prisma.Decimal | string | null>;
 const metric = (v: RollupRaw[string] | undefined) =>
-  typeof v === "bigint" ? safeNumber(v) : Number(v ?? 0);
+  v instanceof Prisma.Decimal ? safeQuantity(v) : typeof v === "bigint" ? safeNumber(v) : Number(v ?? 0);
 
 /**
  * Roll-up dia > mês > ano em uma única consulta (GROUP BY ROLLUP).
@@ -136,7 +136,7 @@ export async function queryRollup(db: PrismaClient, query: RollupQuery) {
               : null,
           day: level === "day" ? String(row.day) : null,
           soldQuantity: metric(row.soldQuantity),
-          promotionalUnits: metric(row.promotionalUnits),
+          promotionalQuantity: metric(row.promotionalQuantity),
           discardedQuantity: metric(row.discardedQuantity),
           revenueCents: metric(row.revenueCents),
           promotionalRevenueCents: metric(row.promotionalRevenueCents),

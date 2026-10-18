@@ -4,5 +4,5 @@
     "outDir": "dist", "rootDir": ".", "strict": true, "esModuleInterop": true,
     "skipLibCheck": true, "sourceMap": true, "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*.ts", "prisma/seed.ts", "scripts/**/*.ts", "tests/**/*.ts"]
+  "include": ["src/**/*.ts", "prisma/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"]
 }
