@@ -1,7 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import * as s from '../schemas.js';
 import { requireFound } from '../domain.js';
-import { queryAnalytics } from '../analytics.js';
+import { queryAnalytics, queryRollup } from '../analytics.js';
 import { runEtl } from '../etl/service.js';
 import { pageArgs, pageMeta, type RouteOptions } from './shared.js';
 
@@ -84,5 +84,18 @@ export const reportsRoutes: FastifyPluginAsyncZod<RouteOptions> = async (app, { 
       },
     },
     async (req) => queryAnalytics(db, req.query, true),
+  );
+
+  app.get(
+    "/api/analytics/rollup",
+    {
+      schema: {
+        tags: ["OLAP"],
+        summary: "Roll-up dia > mês > ano com subtotais e total geral",
+        querystring: s.rollupQuery,
+        response: s.responses(s.analyticRollup),
+      },
+    },
+    async (req) => queryRollup(db, req.query),
   );
 };

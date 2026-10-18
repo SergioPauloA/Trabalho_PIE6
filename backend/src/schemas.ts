@@ -90,6 +90,17 @@ export const analyticQuery = z
   })
   .refine(checkPeriod, "from deve ser anterior ou igual a to.");
 export type AnalyticQuery = z.infer<typeof analyticQuery>;
+export const rollupQuery = z
+  .object({
+    ...periodFields,
+    categoryId: id.optional(),
+    productId: id.optional(),
+    lotId: id.optional(),
+    promotionId: id.optional(),
+    type: z.enum(["SALE", "DISCARD"]).optional(),
+  })
+  .refine(checkPeriod, "from deve ser anterior ou igual a to.");
+export type RollupQuery = z.infer<typeof rollupQuery>;
 
 // Respostas públicas: datas UTC ISO; validade e filtros de período em YYYY-MM-DD.
 const timestamp = z.string();
@@ -192,6 +203,17 @@ export const analytics = z.object({
   lastEtlAt: timestamp.nullable(),
   groupBy: z.string(),
   data: z.array(analyticGroup),
+});
+export const analyticRollupRow = z.object({
+  level: z.enum(["day", "month", "year", "total"]),
+  year: z.number().nullable(),
+  month: z.string().nullable(),
+  day: z.string().nullable(),
+  ...metricFields,
+});
+export const analyticRollup = z.object({
+  lastEtlAt: timestamp.nullable(),
+  data: z.array(analyticRollupRow),
 });
 export const promotionResultSchema = z.object({
   promotion: promotionWithLot,

@@ -45,6 +45,7 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 | GET | `/api/etl/runs/:id` | Situação, contagem e erro de uma carga |
 | GET | `/api/analytics/summary` | Totais analíticos filtrados |
 | GET | `/api/analytics/groups` | Agregações para tabelas e gráficos |
+| GET | `/api/analytics/rollup` | Roll-up dia > mês > ano com subtotais e total geral |
 
 `status` do lote: `OK` (fora da janela), `ATTENTION` (vence de hoje até o prazo), `EXPIRED` (venceu antes de hoje), `EMPTY` (saldo zero). O saldo zero tem precedência. `type` da movimentação: `SALE` ou `DISCARD`.
 
@@ -109,11 +110,14 @@ Filtros analíticos: `from`, `to` (inclusive), `categoryId`, `productId`, `lotId
 /api/analytics/groups?groupBy=product&categoryId=UUID_DA_CATEGORIA
 /api/analytics/groups?groupBy=lot&productId=UUID_DO_PRODUTO
 /api/analytics/summary?from=2026-10-01&to=2026-10-31
+/api/analytics/rollup?from=2026-09-01&to=2026-10-31
 ```
 
 Indicadores retornados: `soldQuantity`, `promotionalUnits`, `discardedQuantity`, `revenueCents` (todas as vendas), `promotionalRevenueCents` (só promoções), `lossCents`. Receita não é lucro. `promotionalUnits` é a métrica operacional de produtos “salvos”, sem afirmar causalidade econômica.
 
 O resumo retorna os indicadores e `lastEtlAt`. O agrupamento retorna `{ lastEtlAt, groupBy, data: [{ key, label, ...indicadores }] }`. Grupos sem movimentações não aparecem; o frontend pode preencher dias/meses vazios com zero. Os endpoints analíticos não usam a paginação operacional.
+
+O roll-up (`/api/analytics/rollup`) aceita os mesmos filtros (`from`, `to`, `categoryId`, `productId`, `lotId`, `promotionId`, `type`) e retorna `{ lastEtlAt, data: [{ level, year, month, day, ...indicadores }] }`. `level` é `day`, `month`, `year` ou `total`: cada subtotal vem logo depois dos seus detalhes (dias do mês, meses do ano) e o total geral é a última linha. `month` vem como `YYYY-MM` e `day` como `YYYY-MM-DD`; os campos que não se aplicam ao nível são `null`. Sem movimentações no filtro, retorna só a linha `total`, zerada.
 
 Após vendas/descartes, atualize as consultas operacionais no TanStack Query. Após concluir o ETL, atualize as consultas analíticas. No primeiro acesso sem carga, `lastEtlAt` é `null`.
 
