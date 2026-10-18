@@ -114,6 +114,23 @@
         <span>Configurações Alerta</span>
       </button>
 
+      <div class="pt-6 px-2 pb-2 text-xs font-bold text-slate-400 tracking-wider uppercase">Operação integrada</div>
+      <button id="tab-btn-promocoes" onclick="switchTab('tab-promocoes')"
+        class="w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-slate-300 hover:bg-brand-800/60 hover:text-white border border-transparent">
+        <i data-lucide="tag" class="w-5 h-5 text-amber-300"></i>
+        <span>Descontos e promoções</span>
+      </button>
+      <button id="tab-btn-venda" onclick="switchTab('tab-venda')"
+        class="w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-slate-300 hover:bg-brand-800/60 hover:text-white border border-transparent">
+        <i data-lucide="shopping-cart" class="w-5 h-5 text-emerald-300"></i>
+        <span>Venda manual</span>
+      </button>
+      <button id="tab-btn-encerramento" onclick="switchTab('tab-encerramento')"
+        class="w-full flex items-center gap-3 px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-150 text-slate-300 hover:bg-brand-800/60 hover:text-white border border-transparent">
+        <i data-lucide="history" class="w-5 h-5 text-sky-300"></i>
+        <span>Encerramento e histórico</span>
+      </button>
+
       <div class="pt-6 px-2 pb-2 text-xs font-bold text-slate-400 tracking-wider uppercase">Relatórios Rápidos</div>
       <a href="javascript:void(0)" onclick="showToast('Relatório','Exportação será ligada ao backend. Aqui: dados de demonstração.','file-spreadsheet','forest')" class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-brand-800/40 hover:text-white transition-colors">
         <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
@@ -939,6 +956,61 @@
 
       </section>
 
+      <section id="tab-promocoes" class="max-w-5xl mx-auto space-y-6 hidden">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0"><i data-lucide="tag" class="w-6 h-6"></i></div>
+            <div>
+              <h3 class="text-lg font-bold text-brand-900">Aplicar desconto a um lote</h3>
+              <p class="text-xs text-slate-500 mt-1">O preço promocional e o arredondamento são calculados pela API. O saldo não é enviado pelo frontend.</p>
+            </div>
+          </div>
+          <form id="promotion-api-form" onsubmit="criarPromocaoApi(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <label class="text-xs font-semibold text-slate-700 md:col-span-2">Lote
+              <select id="promotion-lot" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white"></select>
+            </label>
+            <label class="text-xs font-semibold text-slate-700">Desconto (%)
+              <input id="promotion-discount" required type="number" min="1" max="99" value="30" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+            </label>
+            <button class="md:col-span-3 justify-self-start px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-sm">Ativar promoção</button>
+          </form>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between"><h3 class="font-bold text-brand-900">Promoções ativas</h3><button onclick="carregarOperacao()" class="text-xs font-semibold text-brand-500">Atualizar</button></div>
+          <div id="promotions-api-list" class="divide-y divide-slate-100"><p class="p-5 text-sm text-slate-500">Carregando...</p></div>
+        </div>
+      </section>
+
+      <section id="tab-venda" class="max-w-5xl mx-auto space-y-6 hidden">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0"><i data-lucide="shopping-cart" class="w-6 h-6"></i></div>
+            <div><h3 class="text-lg font-bold text-brand-900">Registrar venda manual</h3><p class="text-xs text-slate-500 mt-1">A promoção ativa será aplicada automaticamente. A chave é preservada para evitar duplicidade em tentativas de rede.</p></div>
+          </div>
+          <form id="sale-api-form" onsubmit="registrarVendaApi(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <label class="text-xs font-semibold text-slate-700 md:col-span-2">Lote
+              <select id="sale-lot" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm bg-white"></select>
+            </label>
+            <label class="text-xs font-semibold text-slate-700">Quantidade
+              <input id="sale-quantity" required type="number" min="1" step="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+            </label>
+            <button class="md:col-span-3 justify-self-start px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm">Registrar venda</button>
+          </form>
+          <div id="sale-api-result" class="hidden mt-4 rounded-lg p-4 text-sm"></div>
+        </div>
+      </section>
+
+      <section id="tab-encerramento" class="max-w-6xl mx-auto space-y-6 hidden">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100"><h3 class="font-bold text-brand-900">Encerrar promoções e consultar resultado</h3><p class="text-xs text-slate-500 mt-1">O encerramento preserva o saldo e todo o histórico registrado durante a promoção.</p></div>
+          <div id="closing-api-list" class="divide-y divide-slate-100"><p class="p-5 text-sm text-slate-500">Carregando...</p></div>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between"><h3 class="font-bold text-brand-900">Histórico imutável</h3><button onclick="carregarHistoricoApi()" class="text-xs font-semibold text-brand-500">Atualizar</button></div>
+          <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="p-3">Data</th><th class="p-3">Tipo</th><th class="p-3">Quantidade</th><th class="p-3">Preço unitário</th><th class="p-3">Promoção</th></tr></thead><tbody id="movement-api-list" class="divide-y divide-slate-100"></tbody></table></div>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -1028,11 +1100,14 @@
     // Alternador de Abas (Tabs) SPA
     function switchTab(tabId) {
       // Lista de seções
-      const sections = ['tab-dash', 'tab-validades', 'tab-config'];
+      const sections = ['tab-dash', 'tab-validades', 'tab-config', 'tab-promocoes', 'tab-venda', 'tab-encerramento'];
       const buttons = {
         'tab-dash': document.getElementById('tab-btn-dash'),
         'tab-validades': document.getElementById('tab-btn-validades'),
-        'tab-config': document.getElementById('tab-btn-config')
+        'tab-config': document.getElementById('tab-btn-config'),
+        'tab-promocoes': document.getElementById('tab-btn-promocoes'),
+        'tab-venda': document.getElementById('tab-btn-venda'),
+        'tab-encerramento': document.getElementById('tab-btn-encerramento')
       };
 
       const titleMap = {
@@ -1047,6 +1122,18 @@
         'tab-config': {
           title: 'Configurações de Automação de Alertas',
           subtitle: 'Regras paramétricas de notificação preventiva e compliance de segurança'
+        },
+        'tab-promocoes': {
+          title: 'Descontos e Promoções',
+          subtitle: 'Ações de remarcação integradas ao estoque da API'
+        },
+        'tab-venda': {
+          title: 'Venda Manual',
+          subtitle: 'Registre vendas e aplique automaticamente a promoção vigente'
+        },
+        'tab-encerramento': {
+          title: 'Encerramento e Histórico',
+          subtitle: 'Feche promoções sem perder saldo ou movimentações'
         }
       };
 
@@ -1085,6 +1172,9 @@
       // Se entrou no Dashboard, inicializa/redimensiona gráficos
       if (tabId === 'tab-dash') {
         setTimeout(initCharts, 50);
+      }
+      if (['tab-promocoes', 'tab-venda', 'tab-encerramento'].includes(tabId)) {
+        carregarOperacao();
       }
       
       lucide.createIcons();
@@ -1404,6 +1494,148 @@ const R0=rows()[0];
 rows().forEach(r=>r.dataset.d=r.children[3].textContent.match(/\d+/)[0]);
 const DR=document.querySelectorAll('#tab-dash tbody tr')[1],HR=DR.cloneNode(true);HR.children[0].lastChild.textContent=' Hortifrúti';HR.children[1].textContent='41 lotes ativos';HR.children[2].textContent='R$ 4.120,00';HR.children[3].textContent='Reforçar giro e checagem diária';DR.after(HR);
 upd();lucide.createIcons();
+</script>
+<script>
+  const API_BASE = (new URLSearchParams(window.location.search).get('api') ||
+    localStorage.getItem('supervalidade_api') || 'http://localhost:3333').replace(/\/$/, '');
+  let apiLots = [];
+  const moneyApi = cents => (Number(cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const dateApi = value => value ? new Date(value).toLocaleString('pt-BR') : '-';
+  const escapeApi = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
+  let pendingSaleRequestKey = null;
+
+  async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) }
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error?.message || `Falha na API (${response.status}).`);
+    return body;
+  }
+
+  function showApiError(error) {
+    showToast('Operação não concluída', error.message || 'Não foi possível comunicar com a API.', 'alert-circle', 'rose');
+  }
+
+  function lotLabel(lot) {
+    return `${lot.code} - ${lot.product?.name || 'Produto'} (${lot.balance} un. | ${moneyApi(lot.unitPriceCents)})`;
+  }
+
+  function fillLotSelects() {
+    ['promotion-lot', 'sale-lot'].forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      select.innerHTML = apiLots.length
+        ? apiLots.map(lot => `<option value="${lot.id}">${escapeApi(lotLabel(lot))}</option>`).join('')
+        : '<option value="">Nenhum lote disponível</option>';
+    });
+  }
+
+  async function carregarOperacao() {
+    try {
+      const [lots, promotions] = await Promise.all([
+        apiRequest('/api/lots?page=1&pageSize=100'),
+        apiRequest('/api/promotions?page=1&pageSize=100&status=ACTIVE')
+      ]);
+      apiLots = lots.data.filter(lot => lot.balance > 0);
+      fillLotSelects();
+      renderPromotions(promotions.data);
+      renderClosing(promotions.data);
+      await carregarHistoricoApi();
+    } catch (error) {
+      showApiError(error);
+    }
+  }
+
+  function renderPromotions(promotions) {
+    const target = document.getElementById('promotions-api-list');
+    if (!target) return;
+    target.innerHTML = promotions.length ? promotions.map(p => `
+      <div class="p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div><p class="font-bold text-slate-900">${escapeApi(p.lot.product.name)} <span class="font-mono text-xs text-slate-500">#${escapeApi(p.lot.code)}</span></p>
+        <p class="text-xs text-slate-500 mt-1">${p.discountPercent}% de desconto | ${p.initialQuantity} un. | preço API: <strong class="text-forest-700">${moneyApi(p.unitPriceCents)}</strong></p></div>
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">ATIVA</span>
+      </div>`).join('') : '<p class="p-5 text-sm text-slate-500">Nenhuma promoção ativa.</p>';
+  }
+
+  function renderClosing(promotions) {
+    const target = document.getElementById('closing-api-list');
+    if (!target) return;
+    target.innerHTML = promotions.length ? promotions.map(p => `
+      <div class="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div><p class="font-bold text-slate-900">${escapeApi(p.lot.product.name)} <span class="font-mono text-xs text-slate-500">#${escapeApi(p.lot.code)}</span></p>
+        <p class="text-xs text-slate-500 mt-1">Promoção de ${p.discountPercent}% | iniciada em ${dateApi(p.startedAt)}</p></div>
+        <div class="flex items-center gap-2"><button onclick="verResultadoPromocao('${p.id}')" class="px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">Ver resultado</button>
+        <button onclick="encerrarPromocaoApi('${p.id}')" class="px-3 py-2 bg-brand-500 hover:bg-brand-800 text-white rounded-lg text-xs font-bold">Encerrar</button></div>
+      </div>`).join('') : '<p class="p-5 text-sm text-slate-500">Nenhuma promoção ativa para encerrar.</p>';
+  }
+
+  async function criarPromocaoApi(event) {
+    event.preventDefault();
+    try {
+      const result = await apiRequest('/api/promotions', { method: 'POST', body: JSON.stringify({
+        lotId: document.getElementById('promotion-lot').value,
+        discountPercent: Number(document.getElementById('promotion-discount').value)
+      }) });
+      showToast('Promoção ativada', `Preço promocional: ${moneyApi(result.unitPriceCents)}.`, 'check-circle', 'forest');
+      await carregarOperacao();
+    } catch (error) { showApiError(error); }
+  }
+
+  async function registrarVendaApi(event) {
+    event.preventDefault();
+    const resultBox = document.getElementById('sale-api-result');
+    try {
+      pendingSaleRequestKey = pendingSaleRequestKey || crypto.randomUUID();
+      const result = await apiRequest(`/api/lots/${document.getElementById('sale-lot').value}/sales`, { method: 'POST', body: JSON.stringify({
+        quantity: Number(document.getElementById('sale-quantity').value),
+        requestKey: pendingSaleRequestKey
+      }) });
+      resultBox.className = 'mt-4 rounded-lg p-4 text-sm bg-emerald-50 border border-emerald-200 text-emerald-800';
+      resultBox.textContent = `Venda registrada. ${result.movement.quantity} unidade(s), preço aplicado ${moneyApi(result.movement.unitPriceCents)}. Saldo atual: ${result.balance}.`;
+      pendingSaleRequestKey = null;
+      await carregarOperacao();
+    } catch (error) {
+      resultBox.className = 'mt-4 rounded-lg p-4 text-sm bg-rose-50 border border-rose-200 text-rose-800';
+      resultBox.textContent = error.message;
+      resultBox.classList.remove('hidden');
+    }
+  }
+
+  async function encerrarPromocaoApi(id) {
+    if (!window.confirm('Encerrar esta promoção? O saldo e o histórico serão preservados.')) return;
+    try {
+      await apiRequest(`/api/promotions/${id}/close`, { method: 'POST' });
+      showToast('Promoção encerrada', 'O lote continua disponível pelo preço normal.', 'check-circle', 'forest');
+      await carregarOperacao();
+    } catch (error) { showApiError(error); }
+  }
+
+  async function verResultadoPromocao(id) {
+    try {
+      const result = await apiRequest(`/api/promotions/${id}/results`);
+      showToast('Resultado da promoção', `${result.soldQuantity} vendidas, ${result.discardedQuantity} descartadas e receita de ${moneyApi(result.revenueCents)}.`, 'bar-chart-3', 'forest');
+    } catch (error) { showApiError(error); }
+  }
+
+  async function carregarHistoricoApi() {
+    const target = document.getElementById('movement-api-list');
+    if (!target) return;
+    try {
+      const result = await apiRequest('/api/movements?page=1&pageSize=100');
+      target.innerHTML = result.data.length ? result.data.map(m => `<tr>
+        <td class="p-3 text-xs text-slate-500">${dateApi(m.occurredAt)}</td>
+        <td class="p-3"><span class="px-2 py-1 rounded-full text-xs font-bold ${m.type === 'SALE' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${m.type === 'SALE' ? 'VENDA' : 'DESCARTE'}</span></td>
+        <td class="p-3 font-semibold">${m.quantity}</td><td class="p-3">${moneyApi(m.unitPriceCents)}</td>
+        <td class="p-3 text-xs text-slate-500">${m.promotionId ? 'Sim' : 'Não'}</td>
+      </tr>`).join('') : '<tr><td colspan="5" class="p-5 text-sm text-slate-500">Nenhuma movimentação registrada.</td></tr>';
+    } catch (error) { target.innerHTML = `<tr><td colspan="5" class="p-5 text-sm text-rose-700">${escapeApi(error.message)}</td></tr>`; }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('promotion-lot')) carregarOperacao();
+  });
 </script>
 </body>
 </html>
