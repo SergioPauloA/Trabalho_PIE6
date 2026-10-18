@@ -87,6 +87,7 @@ O seed cria duas categorias, produtos, lotes, movimentações em dois meses, pro
 | `npm run db:generate` | Gerar o cliente Prisma após mudar o schema |
 | `npm run db:migrate` | Aplicar migrações versionadas |
 | `npm run db:seed` | Criar os dados de demonstração e carregar o modelo analítico |
+| `npm run db:seed:olap` | Acrescentar 8 lotes em 3 categorias, distribuídos em 3 meses, e executar o ETL |
 | `npm run etl` | Executar manualmente uma carga ETL |
 | `npm run docs:export` | Atualizar `docs/openapi.json` a partir das rotas |
 | `npm run db:studio` | Inspecionar os registros no Prisma Studio |
@@ -136,7 +137,7 @@ O ETL faz uma carga completa, adequada ao volume acadêmico: extrai um snapshot 
 
 As dimensões são **tipo 1**: a próxima carga reflete nomes/categorias atuais. Valores financeiros permanecem os registrados na movimentação. A dimensão `none` representa movimentações sem promoção.
 
-O painel de estoque consulta a operação imediatamente. As análises de vendas e perdas refletem a última carga concluída e retornam `lastEtlAt`. Antes da primeira carga, esse campo é `null` e os totais são zero. Há agrupamentos dia/mês/categoria/produto/lote e filtros combinados para detalhamento.
+O painel de estoque consulta a operação imediatamente. As análises de vendas e perdas refletem a última carga concluída e retornam `lastEtlAt`. Antes da primeira carga, esse campo é `null` e os totais são zero. Há agrupamentos dia/mês/categoria/produto/lote e filtros combinados para detalhamento. O endpoint `/api/analytics/rollup` devolve dia > mês > ano com subtotais e total geral em uma única consulta (`GROUP BY ROLLUP`).
 
 Escopo atual: vendas manuais, um estabelecimento, unidades inteiras, ETL manual e API local. Importação CSV, integração com caixa, envio de e-mail e agendamento ficam para evolução. O backend está pronto para integração; não há frontend React implementado nesta entrega.
 
