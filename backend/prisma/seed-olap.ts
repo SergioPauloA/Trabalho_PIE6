@@ -14,7 +14,7 @@ import { runEtl } from "../src/etl/service.js";
  * vendas, promoções e descartes distribuídos nos três últimos meses (mês atual e dois
  * anteriores). Usa as mesmas regras da API (recordMovement/createPromotion), então o
  * saldo e os preços ficam coerentes. Reexecutar não duplica: lotes OLAP-* já criados
- * são preservados. Ao final executa o ETL.
+ * são preservados. Ao final executa o ETL, se houver lotes novos.
  */
 
 type Entry = { monthsAgo: number; day: number; quantity: number };
@@ -206,10 +206,13 @@ try {
     created += 1;
   }
 
-  const run = await runEtl(db);
-  console.log(
-    `Seed OLAP: ${created} lote(s) novo(s) de ${LOTS.length}. ETL ${run.id}: ${run.processedCount} movimentações.`,
-  );
+  // Sem lotes novos não há o que consolidar: evita uma carga ETL a cada reexecução.
+  if (created) {
+    const run = await runEtl(db);
+    console.log(
+      `Seed OLAP: ${created} lote(s) novo(s) de ${LOTS.length}. ETL ${run.id}: ${run.processedCount} movimentações.`,
+    );
+  } else console.log(`Seed OLAP: os ${LOTS.length} lotes já existiam; nada a fazer.`);
 } finally {
   await db.$disconnect();
 }

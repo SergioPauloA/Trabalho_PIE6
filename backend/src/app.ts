@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { Prisma, type PrismaClient } from '@prisma/client';
@@ -12,7 +13,7 @@ import { inventoryRoutes } from './routes/inventory.js';
 import { promotionsRoutes } from './routes/promotions.js';
 import { reportsRoutes } from './routes/reports.js';
 
-export async function buildApp(options: { db: PrismaClient; logger?: boolean; corsOrigins?: string[]; now?: () => Date }) {
+export async function buildApp(options: { db: PrismaClient; logger?: boolean; corsOrigins?: string[]; now?: () => Date; staticDir?: string }) {
   const db = options.db;
 
   const now = options.now ?? (() => new Date());
@@ -47,6 +48,10 @@ export async function buildApp(options: { db: PrismaClient; logger?: boolean; co
   });
 
   await app.register(swaggerUi, { routePrefix: "/docs" });
+
+  // Hospedagem em um único serviço: a API também entrega o frontend compilado (mesma origem, sem CORS).
+  if (options.staticDir)
+    await app.register(fastifyStatic, { root: options.staticDir });
 
   app.addHook("preSerialization", async (_request, _reply, payload) =>
     publicValues(payload),

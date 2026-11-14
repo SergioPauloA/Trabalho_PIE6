@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { resolve } from "node:path";
 import { z } from "zod";
 import { buildApp } from "./app.js";
 import { createDb } from "./db.js";
@@ -11,6 +12,8 @@ const env = z
     CORS_ORIGINS: z
       .string()
       .default("http://localhost:5173,http://127.0.0.1:5173"),
+    // Opcional: pasta do frontend compilado (ex.: ../frontend/dist) para servir site e API juntos.
+    STATIC_DIR: z.string().min(1).optional(),
   })
   .parse(process.env);
 const db = createDb(env.DATABASE_URL);
@@ -18,6 +21,7 @@ const app = await buildApp({
   db,
   logger: true,
   corsOrigins: env.CORS_ORIGINS.split(",").map((s) => s.trim()),
+  staticDir: env.STATIC_DIR ? resolve(env.STATIC_DIR) : undefined,
 });
 app.addHook("onClose", async () => db.$disconnect());
 for (const signal of ["SIGINT", "SIGTERM"])

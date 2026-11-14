@@ -31,6 +31,12 @@ Para executar também o frontend no Docker, use `docker compose --profile web up
 
 Para iniciar API e banco pelo Docker: na pasta `backend/`, execute `docker compose up --build -d --wait`. O Swagger fica em [http://localhost:3334/docs/](http://localhost:3334/docs/).
 
+## Publicação
+
+O arquivo `render.yaml` publica o sistema no plano gratuito do Render: um serviço web entrega o site e a API no mesmo endereço (`STATIC_DIR` aponta para o frontend compilado) e usa um PostgreSQL do próprio Render. Na inicialização são aplicadas as migrações e carregados os dados demonstrativos, sem duplicar registros. O serviço gratuito hiberna sem acessos e leva cerca de um minuto para responder ao primeiro; o banco gratuito expira 30 dias após a criação.
+
+O GitHub Actions (`.github/workflows/ci.yml`) executa os testes e os builds da API e do frontend a cada push e pull request.
+
 ## Carga de produtos
 
 Para adicionar 24 produtos comuns e entradas de estoque de exemplo, execute na
