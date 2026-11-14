@@ -11,6 +11,18 @@ Controle de estoque em toneladas, validades, promoções e perdas, com ETL e con
 
 A interface React consome os endpoints de cadastros, estoque, movimentações, promoções, pós-promoção, indicadores operacionais, configurações, carga ETL e consultas analíticas. A interface exibe os registros do banco, incluindo dados demonstrativos quando uma carga opcional é executada; os estados vazios indicam quando ainda não existem registros.
 
+## Fluxo de uso
+
+O sistema segue o fluxo definido na ideação e no mapa conceitual do projeto:
+
+1. **Situação do lote.** Cada lote é classificado como Em dia, Atenção ou Crítico conforme a validade e a antecedência definida pela loja em Configurações.
+2. **Atenção pede ação preventiva.** Em Estoque e validades, os lotes aparecem por urgência com um desconto sugerido (15%, 30% ou 50%, maior quanto mais perto do vencimento). O botão "Criar promoção" abre o formulário já preenchido; lotes em promoção indicam prioridade na venda.
+3. **Crítico exige retirada.** O botão "Retirar lote" abre o descarte com o saldo inteiro e o motivo "Vencimento", e mostra a perda calculada pelo custo.
+4. **Registro de vendas e perdas.** Cada movimentação mostra o valor por tonelada e o total, separando preço de venda (receita) de custo (perda). O motivo da perda é escolhido em uma lista padronizada.
+5. **Análise dos resultados.** Em Análises e resultados, perdas e promoções são comparadas por período, produto, categoria, lote e motivo, após a consolidação (ETL).
+
+O painel inicial resume esse roteiro em uma conferência diária de três passos. A interface funciona em celular, tablet e computador; em telas menores as tabelas são exibidas como cartões.
+
 ## Executar a aplicação
 
 Inicie a API e o banco: `cd backend` e `docker compose up --build -d --wait`. Em outro terminal, entre em `frontend`, execute `npm ci` e `npm run dev`. Abra [http://localhost:5173](http://localhost:5173). O frontend já encaminha as chamadas para a API Docker na porta 3334.

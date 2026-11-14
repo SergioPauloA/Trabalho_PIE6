@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Page } from './types';
 
 const base = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -27,9 +27,12 @@ export function queryString(params: Record<string, string | number | undefined>)
   for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== '') search.set(key, String(value));
   return search.toString();
 }
-export function useApi<T>(path: string, enabled = true) {
-  return useQuery({ queryKey: ['api', path], queryFn: ({ signal }) => request<T>(path, { signal }), enabled });
+// keep: mantém a lista anterior na tela enquanto busca a próxima página ou filtro.
+export function useApi<T>(path: string, enabled = true, keep = false) {
+  return useQuery({ queryKey: ['api', path], queryFn: ({ signal }) => request<T>(path, { signal }), enabled, placeholderData: keep ? keepPreviousData : undefined });
 }
+// Parâmetros após "?" no hash, ex.: #movimentacoes?tipo=descarte&lote=ID.
+export const hashParams = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 // Carrega todas as páginas somente para seletores; as tabelas usam paginação no servidor.
 export function useOptions<T>(path: string) {
   return useQuery({ queryKey: ['api', 'options', path], queryFn: async ({ signal }) => {

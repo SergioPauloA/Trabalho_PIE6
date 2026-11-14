@@ -160,6 +160,7 @@ model FactMovement {
   revenueCents     BigInt
   lossCents        BigInt
   promotionalQuantity Decimal @db.Decimal(12, 3)
+  reason           String?      @db.VarChar(300)
 
   @@index([dateId, type])
   @@index([productId])

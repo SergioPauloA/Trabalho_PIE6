@@ -2452,12 +2452,14 @@
                 "OK",
                 "ATTENTION",
                 "EXPIRED",
-                "EMPTY"
+                "EMPTY",
+                "IN_STOCK"
               ]
             },
             "in": "query",
             "name": "status",
-            "required": false
+            "required": false,
+            "description": "IN_STOCK lista todos os lotes com saldo, em qualquer situação."
           }
         ],
         "responses": {
@@ -2586,6 +2588,11 @@
                               "EXPIRED",
                               "EMPTY"
                             ]
+                          },
+                          "suggestedDiscountPercent": {
+                            "nullable": true,
+                            "description": "Desconto sugerido para lotes em atenção; null nas demais situações.",
+                            "type": "number"
                           }
                         },
                         "required": [
@@ -2601,7 +2608,8 @@
                           "updatedAt",
                           "product",
                           "daysUntilExpiry",
-                          "status"
+                          "status",
+                          "suggestedDiscountPercent"
                         ],
                         "additionalProperties": false
                       }
@@ -3308,6 +3316,11 @@
                         "EMPTY"
                       ]
                     },
+                    "suggestedDiscountPercent": {
+                      "nullable": true,
+                      "description": "Desconto sugerido para lotes em atenção; null nas demais situações.",
+                      "type": "number"
+                    },
                     "soldQuantity": {
                       "type": "number"
                     },
@@ -3329,6 +3342,7 @@
                     "product",
                     "daysUntilExpiry",
                     "status",
+                    "suggestedDiscountPercent",
                     "soldQuantity",
                     "discardedQuantity"
                   ],
@@ -8405,7 +8419,8 @@
                 "month",
                 "category",
                 "product",
-                "lot"
+                "lot",
+                "reason"
               ]
             },
             "in": "query",
@@ -8747,7 +8762,8 @@
                 "month",
                 "category",
                 "product",
-                "lot"
+                "lot",
+                "reason"
               ]
             },
             "in": "query",

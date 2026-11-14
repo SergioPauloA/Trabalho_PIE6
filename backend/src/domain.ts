@@ -75,7 +75,14 @@ export function lotView<T extends { expiresAt: Date; balance: Prisma.Decimal }>(
     expiresAt: dateOnly(lot.expiresAt),
     daysUntilExpiry,
     status,
+    suggestedDiscountPercent:
+      status === "ATTENTION" ? suggestedDiscount(daysUntilExpiry, alertDays) : null,
   };
+}
+/** Quanto mais perto do vencimento dentro da janela de alerta, maior o desconto sugerido. */
+export function suggestedDiscount(daysUntilExpiry: number, alertDays: number): number {
+  const remaining = alertDays > 0 ? daysUntilExpiry / alertDays : 0;
+  return remaining <= 1 / 3 ? 50 : remaining <= 2 / 3 ? 30 : 15;
 }
 export function requireFound<T>(value: T | null, label = "Registro"): T {
   if (!value) throw new AppError(404, "NOT_FOUND", `${label} não encontrado.`);

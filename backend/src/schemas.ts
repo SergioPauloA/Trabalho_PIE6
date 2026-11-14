@@ -61,7 +61,10 @@ export const lotQuery = pagination.extend({
   search: z.string().max(160).optional(),
   productId: id.optional(),
   categoryId: id.optional(),
-  status: z.enum(["OK", "ATTENTION", "EXPIRED", "EMPTY"]).optional(),
+  status: z
+    .enum(["OK", "ATTENTION", "EXPIRED", "EMPTY", "IN_STOCK"])
+    .optional()
+    .describe("IN_STOCK lista todos os lotes com saldo, em qualquer situação."),
 });
 export const promotionQuery = pagination.extend({
   lotId: id.optional(),
@@ -87,7 +90,7 @@ export const analyticQuery = z
     promotionId: id.optional(),
     type: z.enum(["SALE", "DISCARD"]).optional(),
     groupBy: z
-      .enum(["day", "month", "category", "product", "lot"])
+      .enum(["day", "month", "category", "product", "lot", "reason"])
       .default("month"),
   })
   .refine(checkPeriod, "from deve ser anterior ou igual a to.");
@@ -138,6 +141,10 @@ export const publicLot = lot.extend({
   product: productWithCategory,
   daysUntilExpiry: z.number(),
   status: z.enum(["OK", "ATTENTION", "EXPIRED", "EMPTY"]),
+  suggestedDiscountPercent: z
+    .number()
+    .nullable()
+    .describe("Desconto sugerido para lotes em atenção; null nas demais situações."),
 });
 export const promotion = z.object({
   id,

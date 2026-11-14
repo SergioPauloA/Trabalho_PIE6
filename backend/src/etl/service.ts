@@ -58,6 +58,7 @@ export async function runEtl(db: PrismaClient) {
                 : 0n,
             promotionalQuantity:
               m.type === "SALE" && m.promotionId ? m.quantity : 0,
+            reason: m.type === "DISCARD" ? m.reason : null,
           };
         });
         // Somente o destino analítico é substituído. A transação preserva a carga anterior em caso de falha.

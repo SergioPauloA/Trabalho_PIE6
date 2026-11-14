@@ -18,12 +18,15 @@ export function PageHeading({ eyebrow, title, description, action }: { eyebrow: 
 export function Panel({ title, subtitle, action, children, className = '' }: { title?: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return <section className={`panel ${className}`}>{title && <div className="panel-heading"><div><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</div>}{children}</section>;
 }
-export function Metric({ label, value, detail, icon, tone = '' }: { label: string; value: ReactNode; detail?: string; icon?: ReactNode; tone?: string }) {
-  return <div className={`metric ${tone}`}><div className="flex items-center justify-between gap-2"><span>{label}</span>{icon}</div><strong>{value}</strong>{detail && <p>{detail}</p>}</div>;
+export function Metric({ label, value, detail, icon, tone = '', href }: { label: string; value: ReactNode; detail?: string; icon?: ReactNode; tone?: string; href?: string }) {
+  const content = <><div className="flex items-center justify-between gap-2"><span>{label}</span>{icon}</div><strong>{value}</strong>{detail && <p>{detail}</p>}</>;
+  return href ? <a href={href} className={`metric ${tone}`}>{content}</a> : <div className={`metric ${tone}`}>{content}</div>;
 }
-const badges: Record<string, [string, string]> = { OK: ['Regular', 'green'], ATTENTION: ['Em atenção', 'amber'], EXPIRED: ['Vencido', 'red'], EMPTY: ['Sem saldo', 'gray'], ACTIVE: ['Ativa', 'green'], CLOSED: ['Encerrada', 'gray'], SALE: ['Venda', 'green'], DISCARD: ['Descarte', 'red'], COMPLETED: ['Concluída', 'green'], RUNNING: ['Em andamento', 'amber'], FAILED: ['Falhou', 'red'] };
+const badges: Record<string, [string, string]> = { OK: ['Em dia', 'green'], ATTENTION: ['Atenção', 'amber'], EXPIRED: ['Crítico', 'red'], EMPTY: ['Sem saldo', 'gray'], ACTIVE: ['Ativa', 'green'], CLOSED: ['Encerrada', 'gray'], SALE: ['Venda', 'green'], DISCARD: ['Descarte', 'red'], COMPLETED: ['Concluída', 'green'], RUNNING: ['Em andamento', 'amber'], FAILED: ['Falhou', 'red'] };
 export function Badge({ status }: { status: string }) { const [label, color] = badges[status] || [status, 'gray']; return <span className={`badge ${color}`}><span />{label}</span>; }
 export function Pagination({ meta, onChange }: { meta?: Page<unknown>['pagination']; onChange: (page: number) => void }) {
+  // Se a página atual deixou de existir (ex.: último item saiu do filtro), volta para a última válida.
+  useEffect(() => { if (meta && meta.page > 1 && meta.page > meta.totalPages) onChange(Math.max(1, meta.totalPages)); }, [meta, onChange]);
   if (!meta) return null;
   return <div className="pagination"><span>{meta.total} registro{meta.total !== 1 ? 's' : ''} · Página {meta.page} de {Math.max(1, meta.totalPages)}</span><div className="flex gap-2"><button className="btn-icon" aria-label="Página anterior" disabled={meta.page <= 1} onClick={() => onChange(meta.page - 1)}><ArrowLeft size={16} /></button><button className="btn-icon" aria-label="Próxima página" disabled={meta.page >= meta.totalPages} onClick={() => onChange(meta.page + 1)}><ArrowRight size={16} /></button></div></div>;
 }

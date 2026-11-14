@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Um push novo na mesma branch cancela a execução anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: API (tipos, testes e build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: supervalidade
+          POSTGRES_PASSWORD: supervalidade
+          POSTGRES_DB: supervalidade_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supervalidade -d supervalidade_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      # Banco descartável do próprio job; os testes aplicam as migrações.
+      DATABASE_URL: postgresql://supervalidade:supervalidade@localhost:5432/supervalidade_test?schema=public
+      TEST_DATABASE_URL: postgresql://supervalidade:supervalidade@localhost:5432/supervalidade_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run db:generate
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  frontend:
+    name: Web (testes e build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run build

@@ -22,6 +22,11 @@ const groups = {
   },
   product: { key: Prisma.sql`p.id::text`, label: Prisma.sql`p.name` },
   lot: { key: Prisma.sql`l.id::text`, label: Prisma.sql`l.code` },
+  // Motivo existe apenas nos descartes; cargas antigas ficam em "Sem motivo informado".
+  reason: {
+    key: Prisma.sql`COALESCE(f.reason, 'Sem motivo informado')`,
+    label: Prisma.sql`COALESCE(f.reason, 'Sem motivo informado')`,
+  },
 };
 
 /** Filtros de fatiamento (slice/dice) compartilhados pelas consultas. Aliases: f, p, l. */
@@ -48,6 +53,12 @@ export async function queryAnalytics(
 ) {
   const conditions = filterConditions(query);
   const group = groups[query.groupBy];
+  if (grouped && query.groupBy === "reason")
+    conditions.push(Prisma.sql`f.type = 'DISCARD'::"MovementType"`);
+  // Períodos em ordem cronológica; demais grupos pelos que mais pesaram em perdas.
+  const order = ["day", "month"].includes(query.groupBy)
+    ? Prisma.sql`key`
+    : Prisma.sql`"lossCents" DESC, "revenueCents" DESC, label`;
   return db.$transaction(
     async (tx) => {
       const latest = await tx.etlRun.findFirst({
@@ -63,7 +74,7 @@ export async function queryAnalytics(
       JOIN "DimProduct" p ON p.id = f."productId"
       JOIN "DimLot" l ON l.id = f."lotId"
       WHERE ${Prisma.join(conditions, " AND ")}
-      ${grouped ? Prisma.sql`GROUP BY ${group.key}, ${group.label} ORDER BY key` : Prisma.empty}
+      ${grouped ? Prisma.sql`GROUP BY ${group.key}, ${group.label} ORDER BY ${order}` : Prisma.empty}
     `);
       const data = rows.map((row) =>
         Object.fromEntries(
