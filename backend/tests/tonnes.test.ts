@@ -72,6 +72,12 @@ test("toneladas: saldo exato, promoção, persistência e todos os agrupamentos 
     assert.equal(groups.data[0].soldQuantity, 0.1);
     assert.equal(groups.data[0].discardedQuantity, 0.025);
   }
+  const reasons = await get(`/api/analytics/groups?lotId=${lot.id}&groupBy=reason`);
+  assert.equal(reasons.data.length, 1);
+  assert.equal(reasons.data[0].soldQuantity, 0);
+  assert.equal(reasons.data[0].discardedQuantity, 0.025);
+  assert.equal(reasons.data[0].lossCents, results.lossCents);
+  assert.equal(reasons.data[0].label, "Avaria");
   const rollup = await get(`/api/analytics/rollup?lotId=${lot.id}`);
   assert.deepEqual(rollup.data.map((row: { soldQuantity: number }) => row.soldQuantity), [0.1, 0.1, 0.1, 0.1]);
   assert.equal((await get("/api/dashboard/stock")).totalUnits, undefined);

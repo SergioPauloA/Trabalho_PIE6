@@ -19,13 +19,15 @@ const navigation = [
   { id: 'analises', label: 'Análises e resultados', icon: ChartNoAxesCombined },
   { id: 'configuracoes', label: 'Configurações', icon: SettingsIcon },
 ] as const;
-function currentPage() { const id = window.location.hash.slice(1); return navigation.some(item => item.id === id) ? id : 'painel'; }
+function pageOf(hash: string) { const id = hash.slice(1).split('?')[0]; return navigation.some(item => item.id === id) ? id : 'painel'; }
 export default function App() {
-  const [page, setPage] = useState(currentPage);
+  // O hash completo (página + parâmetros) identifica a tela: atalhos como #estoque?situacao=EXPIRED abrem já filtrados.
+  const [hash, setHash] = useState(() => window.location.hash);
+  const page = pageOf(hash);
   const [menu, setMenu] = useState(false);
   const [notice, setNotice] = useState('');
   const health = useApi<{ status: string }>('/health');
-  useEffect(() => { const update = () => { setPage(currentPage()); setMenu(false); }; window.addEventListener('hashchange', update); return () => window.removeEventListener('hashchange', update); }, []);
+  useEffect(() => { const update = () => { setHash(window.location.hash); setMenu(false); window.scrollTo(0, 0); }; window.addEventListener('hashchange', update); return () => window.removeEventListener('hashchange', update); }, []);
   useEffect(() => { if (!notice) return; const timer = setTimeout(() => setNotice(''), 6500); return () => clearTimeout(timer); }, [notice]);
   useEffect(() => { document.title = `${navigation.find(item => item.id === page)?.label} | Mercelume`; }, [page]);
   useEffect(() => { if (!menu) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenu(false); }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close); }, [menu]);
@@ -35,7 +37,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="sidebar-tip"><BarChart3 size={23} /><strong>Cada tonelada conta.</strong><p>Acompanhe as validades e transforme atenção em ação.</p></div><div className="workspace"><span><ClipboardList size={18} /></span><div>Meu estabelecimento<small>Gestão de estoque</small></div></div></div>
     </aside>
     <div className="workspace-main"><header className="topbar"><div className="flex items-center gap-3"><button className="btn-icon lg:hidden" aria-label="Abrir menu" aria-expanded={menu} aria-controls="navigation" onClick={() => setMenu(!menu)}><Menu size={21} /></button><span className="text-slate-400 hidden sm:inline">Estabelecimento</span><ChevronRight size={14} className="text-slate-300 hidden sm:block" /><span className="font-medium">{navigation.find(item => item.id === page)?.label}</span></div><div className={`connection ${health.isError ? 'offline' : ''}`} title={health.error?.message}><span />{health.isPending ? 'Conectando' : health.isError ? 'Sem conexão' : 'Sistema conectado'}</div></header>
-      <main id="main-content" tabIndex={-1}>{page === 'painel' && <Dashboard />}{page === 'estoque' && <Inventory />}{page === 'cadastros' && <Catalog />}{page === 'promocoes' && <Promotions />}{page === 'movimentacoes' && <Movements />}{page === 'analises' && <Analytics />}{page === 'configuracoes' && <Settings />}</main><footer className="app-footer"><span>Mercelume · Gestão inteligente de estoque</span><span><CircleHelp size={13} /> Quantidades em t · Preços em R$/t · Horário de Brasília</span></footer>
+      <main id="main-content" tabIndex={-1} key={hash}>{page === 'painel' && <Dashboard />}{page === 'estoque' && <Inventory />}{page === 'cadastros' && <Catalog />}{page === 'promocoes' && <Promotions />}{page === 'movimentacoes' && <Movements />}{page === 'analises' && <Analytics />}{page === 'configuracoes' && <Settings />}</main><footer className="app-footer"><span>Mercelume · Gestão inteligente de estoque</span><span><CircleHelp size={13} /> Quantidades em t · Preços em R$/t · Horário de Brasília</span></footer>
     </div>{notice && <div className="toast" role="status"><Check size={20} /><span>{notice}</span><button aria-label="Fechar aviso" onClick={() => setNotice('')}><X size={17} /></button></div>}
   </div></NoticeContext.Provider>;
 }

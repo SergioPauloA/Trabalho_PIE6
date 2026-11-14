@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 import { buildApp } from "../src/app.js";
 import { createDb } from "../src/db.js";
-import { dayDifference, localDate, recordMovement } from "../src/domain.js";
+import { dayDifference, localDate, recordMovement, suggestedDiscount } from "../src/domain.js";
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
@@ -343,8 +343,20 @@ test("cadastro, busca, paginação, inativação e proteção de histórico", as
 test("alertas e painel refletem o saldo operacional e prazo configurado", async () => {
   const { lot } = await fixture(10, dateOffset(5));
   await call("PUT", "/api/settings", { alertDays: 3 });
-  assert.equal((await call("GET", `/api/lots/${lot.id}`)).body.status, "OK");
+  const regular = (await call("GET", `/api/lots/${lot.id}`)).body;
+  assert.equal(regular.status, "OK");
+  assert.equal(regular.suggestedDiscountPercent, null);
   await call("PUT", "/api/settings", { alertDays: 10 });
+  assert.equal(
+    (await call("GET", `/api/lots?status=IN_STOCK&search=${lot.code}`)).body.pagination.total,
+    1,
+  );
+  // 5 de 10 dias restantes: faixa intermediária da janela.
+  assert.equal((await call("GET", `/api/lots/${lot.id}`)).body.suggestedDiscountPercent, 30);
+  assert.deepEqual(
+    [[10, 10], [7, 10], [6, 10], [4, 10], [3, 10], [0, 10], [0, 0]].map(([days, alert]) => suggestedDiscount(days!, alert!)),
+    [15, 15, 30, 30, 50, 50, 50],
+  );
   assert.equal(
     (await call("GET", `/api/lots?status=ATTENTION&search=${lot.code}`)).body
       .pagination.total,
@@ -355,6 +367,10 @@ test("alertas e painel refletem o saldo operacional e prazo configurado", async 
     requestKey: randomUUID(),
   });
   assert.equal((await call("GET", `/api/lots/${lot.id}`)).body.status, "EMPTY");
+  assert.equal(
+    (await call("GET", `/api/lots?status=IN_STOCK&search=${lot.code}`)).body.pagination.total,
+    0,
+  );
   assert.equal((await call("GET", "/api/dashboard/stock")).status, 200);
 });
 

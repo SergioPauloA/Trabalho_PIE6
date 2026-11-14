@@ -33,11 +33,11 @@ O perfil `web` serve a versão compilada do React em http://localhost:5173. Ngin
 
 ## Funcionalidades
 
-- Painel: estoque operacional, lotes em risco e receita/perdas da última consolidação.
+- Painel: estoque operacional, roteiro de conferência diária, lotes prioritários com a ação indicada e receita/perdas da última consolidação.
 - Produtos e categorias: criação, edição, ativação e inativação de produtos.
-- Estoque: cadastro, filtros, paginação, detalhes e correção de lotes sem histórico.
+- Estoque: cadastro, filtros, paginação, detalhes e correção de lotes sem histórico. Cada lote mostra a situação (Em dia, Atenção, Crítico) e a ação indicada: promoção com desconto sugerido, prioridade na venda ou retirada.
 - Promoções: criação, encerramento, consulta de ativas/encerradas e resultados.
-- Vendas e descartes: preço definido pelo backend, motivo obrigatório no descarte e chave de idempotência preservada para repetição após falha de rede.
+- Vendas e descartes: preço definido pelo backend, motivo padronizado e obrigatório no descarte, valor total de cada movimentação (receita pelo preço, perda pelo custo) e chave de idempotência preservada para repetição após falha de rede.
 - Histórico: filtros por lote, tipo e período; preço ou custo registrado em cada movimento.
 - Análises: resumo, agrupamento por dia/mês/categoria/produto/lote, roll-up e execução/histórico do ETL.
 - Configurações: prazo de alerta salvo no banco.

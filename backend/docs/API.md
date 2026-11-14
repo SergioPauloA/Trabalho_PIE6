@@ -49,7 +49,7 @@ Base local: `http://localhost:3333`. Base Docker: `http://localhost:3334`. Sem a
 | GET | `/api/analytics/groups` | Agregações para tabelas e gráficos |
 | GET | `/api/analytics/rollup` | Roll-up dia > mês > ano com subtotais e total geral |
 
-`status` do lote: `OK` (fora da janela), `ATTENTION` (vence de hoje até o prazo), `EXPIRED` (venceu antes de hoje), `EMPTY` (saldo zero). O saldo zero tem precedência. `type` da movimentação: `SALE` ou `DISCARD`.
+`status` do lote: `OK` (fora da janela), `ATTENTION` (vence de hoje até o prazo), `EXPIRED` (venceu antes de hoje), `EMPTY` (saldo zero). O saldo zero tem precedência. O filtro `status=IN_STOCK` de `/api/lots` lista todos os lotes com saldo, em qualquer situação. Na interface, as situações aparecem como Em dia, Atenção, Crítico e Sem saldo. Lotes `ATTENTION` trazem `suggestedDiscountPercent`: 50 no terço final da janela de alerta, 30 no terço intermediário e 15 no início; nas demais situações o campo é `null`. `type` da movimentação: `SALE` ou `DISCARD`.
 
 ## Exemplo de fluxo
 
@@ -106,12 +106,13 @@ No pós-promoção, `remainingFromPromotion` representa a quantidade que sobrou 
 
 `/api/dashboard/stock` retorna `date`, `alertDays`, `activeLots`, `totalTonnes`, `expiredLots`, `expiredTonnes`, `attentionLots`, `attentionTonnes`, `activePromotions`. Os campos terminados em `Tonnes` são pesos em toneladas; os campos `Lots` continuam contagens de lotes para rastreabilidade. Os lotes com saldo zero não entram nas contagens de estoque.
 
-Filtros analíticos: `from`, `to` (inclusive), `categoryId`, `productId`, `lotId`, `promotionId`, `type`. Podem ser combinados. Para agrupamentos, acrescente `groupBy=day|month|category|product|lot` (padrão `month`).
+Filtros analíticos: `from`, `to` (inclusive), `categoryId`, `productId`, `lotId`, `promotionId`, `type`. Podem ser combinados. Para agrupamentos, acrescente `groupBy=day|month|category|product|lot|reason` (padrão `month`). `reason` agrupa somente os descartes pelo motivo informado. Dias e meses vêm em ordem cronológica; os demais grupos, do maior para o menor valor de perda.
 
 ```text
 /api/analytics/groups?groupBy=month
 /api/analytics/groups?groupBy=product&categoryId=UUID_DA_CATEGORIA
 /api/analytics/groups?groupBy=lot&productId=UUID_DO_PRODUTO
+/api/analytics/groups?groupBy=reason&from=2026-10-01&to=2026-10-31
 /api/analytics/summary?from=2026-10-01&to=2026-10-31
 /api/analytics/rollup?from=2026-09-01&to=2026-10-31
 ```

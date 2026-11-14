@@ -1,7 +1,7 @@
 export interface Page<T> { data: T[]; pagination: { page: number; pageSize: number; total: number; totalPages: number } }
 export interface Category { id: string; name: string }
 export interface Product { id: string; name: string; sku: string; barcode: string | null; categoryId: string; active: boolean; category: Category }
-export interface Lot { id: string; code: string; productId: string; product: Product; expiresAt: string; initialQuantity: number; balance: number; unitCostCents: number; unitPriceCents: number; daysUntilExpiry: number; status: 'OK' | 'ATTENTION' | 'EXPIRED' | 'EMPTY' }
+export interface Lot { id: string; code: string; productId: string; product: Product; expiresAt: string; initialQuantity: number; balance: number; unitCostCents: number; unitPriceCents: number; daysUntilExpiry: number; status: 'OK' | 'ATTENTION' | 'EXPIRED' | 'EMPTY'; suggestedDiscountPercent: number | null }
 export interface LotDetail extends Lot { soldQuantity: number; discardedQuantity: number }
 export interface Promotion { id: string; lotId: string; discountPercent: number; unitPriceCents: number; initialQuantity: number; status: 'ACTIVE' | 'CLOSED'; startedAt: string; endedAt: string | null; lot: Lot }
 export interface PromotionResult { promotion: Promotion; soldQuantity: number; discardedQuantity: number; remainingFromPromotion: number; currentLotBalance: number; sellThroughPercent: number; revenueCents: number; lossCents: number }
